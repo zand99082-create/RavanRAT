@@ -75,11 +75,13 @@
             </intent-filter>
         </activity>
 
+        <!-- سرویس اصلی HTTP Server با قابلیت ادامه کار پس از بستن اپ -->
         <service
             android:name=".HttpServerService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
 
         <service
             android:name=".CameraService"
@@ -118,4 +120,3 @@
     </application>
 
 </manifest>
-
