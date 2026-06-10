@@ -58,7 +58,7 @@ public class HttpServerService extends Service {
     private boolean hasIPv6 = false;
 
     // ذخیره موقعیت‌ها
-    private List<String> savedLocations = new ArrayList<>();
+    private static List<String> savedLocations = new ArrayList<>();
     private LocationManager locationManager;
     private LocationListener locationListener;
     private String lastLocation = "نامشخص";
@@ -287,7 +287,7 @@ public class HttpServerService extends Service {
     }
 
     // دریافت لیست موقعیت‌های ذخیره شده به صورت HTML (برای پنل وب)
-    public String getSavedLocationsAsHtml() {
+    public static String getSavedLocationsAsHtml() {
         if (savedLocations.isEmpty()) {
             return "<p style='color:#888;'>📍 موقعیتی ذخیره نشده است</p>";
         }
