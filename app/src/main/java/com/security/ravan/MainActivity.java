@@ -256,35 +256,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // دریافت IPv6 واقعی از شبکه
-    public static String getPublicIPv6() {
-        try {
-            ConnectivityManager cm = (ConnectivityManager) 
-                instance.getSystemService(Context.CONNECTIVITY_SERVICE);
-            Network activeNetwork = cm.getActiveNetwork();
-            LinkProperties linkProps = cm.getLinkProperties(activeNetwork);
-            
-            if (linkProps != null) {
-                for (LinkAddress addr : linkProps.getLinkAddresses()) {
-                    if (addr.getAddress() instanceof Inet6Address) {
-                        String ip = addr.getAddress().getHostAddress();
-                        int idx = ip.indexOf('%');
-                        if (idx >= 0) {
-                            ip = ip.substring(0, idx);
-                        }
-                        // فقط آدرس‌های Global (نه Link-Local fe80)
-                        if (!ip.toLowerCase().startsWith("fe80") && 
-                            !ip.equals("::1") &&
-                            addr.isGlobalPreferred()) {
-                            return ip;
-                        }
+public static String getPublicIPv6() {
+    try {
+        ConnectivityManager cm = (ConnectivityManager) 
+            instance.getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network activeNetwork = cm.getActiveNetwork();
+        LinkProperties linkProps = cm.getLinkProperties(activeNetwork);
+        
+        if (linkProps != null) {
+            for (LinkAddress addr : linkProps.getLinkAddresses()) {
+                if (addr.getAddress() instanceof Inet6Address) {
+                    String ip = addr.getAddress().getHostAddress();
+                    int idx = ip.indexOf('%');
+                    if (idx >= 0) {
+                        ip = ip.substring(0, idx);
+                    }
+                    // فقط آدرس‌های Global (نه Link-Local fe80 و نه Unique Local fd/fc)
+                    if (!ip.toLowerCase().startsWith("fe80") && 
+                        !ip.equals("::1") &&
+                        !ip.startsWith("fd") &&
+                        !ip.startsWith("fc")) {
+                        return ip;
                     }
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-        return null;
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+    return null;
+}
 
     public static MainActivity getInstance() {
         return instance;
