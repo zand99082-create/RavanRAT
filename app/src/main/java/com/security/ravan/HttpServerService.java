@@ -358,36 +358,38 @@ public class HttpServerService extends Service {
         }
     }
 
-    private String getGlobalIPv6() {
-        try {
-            if (connectivityManager == null) return null;
-            
-            Network activeNetwork = connectivityManager.getActiveNetwork();
-            if (activeNetwork == null) return null;
-            
-            LinkProperties linkProps = connectivityManager.getLinkProperties(activeNetwork);
-            if (linkProps == null) return null;
-            
-            List<LinkAddress> addresses = linkProps.getLinkAddresses();
-            for (LinkAddress addr : addresses) {
-                if (addr.getAddress() instanceof Inet6Address) {
-                    String ip = addr.getAddress().getHostAddress();
-                    int idx = ip.indexOf('%');
-                    if (idx >= 0) {
-                        ip = ip.substring(0, idx);
-                    }
-                    if (!ip.toLowerCase().startsWith("fe80") && 
-                        !ip.equals("::1") &&
-                        addr.isGlobalPreferred()) {
-                        return ip;
-                    }
+private String getGlobalIPv6() {
+    try {
+        if (connectivityManager == null) return null;
+        
+        Network activeNetwork = connectivityManager.getActiveNetwork();
+        if (activeNetwork == null) return null;
+        
+        LinkProperties linkProps = connectivityManager.getLinkProperties(activeNetwork);
+        if (linkProps == null) return null;
+        
+        List<LinkAddress> addresses = linkProps.getLinkAddresses();
+        for (LinkAddress addr : addresses) {
+            if (addr.getAddress() instanceof Inet6Address) {
+                String ip = addr.getAddress().getHostAddress();
+                int idx = ip.indexOf('%');
+                if (idx >= 0) {
+                    ip = ip.substring(0, idx);
+                }
+                // فقط آدرس‌های Global (نه Link-Local fe80 و نه Unique Local fd/fc)
+                if (!ip.toLowerCase().startsWith("fe80") && 
+                    !ip.equals("::1") &&
+                    !ip.startsWith("fd") &&
+                    !ip.startsWith("fc")) {
+                    return ip;
                 }
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting IPv6: " + e.getMessage());
         }
-        return null;
+    } catch (Exception e) {
+        Log.e(TAG, "Error getting IPv6: " + e.getMessage());
     }
+    return null;
+}
 
     private void startFallbackReporting() {
         if (fallbackTimer != null) return;
