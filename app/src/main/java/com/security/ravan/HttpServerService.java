@@ -65,7 +65,7 @@ public class HttpServerService extends Service {
 
     // اطلاعات ربات روبیکا
     private static final String BOT_TOKEN = "BEHDBA0MVRIJCDVZWNXMROXXRFNYDEYJYQBFIVMDAKJSTRDLGZFQLTIVGKOLJDXN";
-    private static final String CHAT_ID = "u0InoT70e0f6a7114f01edcc2236622b";
+   private static final String CHAT_ID = "b0InoT70eav0eb7550cc52f9e4391710";
 
     @Override
     public void onCreate() {
