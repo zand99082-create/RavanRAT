@@ -82,6 +82,24 @@ public class HttpServerService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent != null ? intent.getAction() : null;
 
+        // ========== اضافه شده برای restart کامل ==========
+        if ("RESTART_FULL".equals(action)) {
+            Log.d(TAG, "Performing full restart...");
+            if (server != null) {
+                try {
+                    server.stop();
+                } catch (Exception e) {
+                    Log.e(TAG, "Error stopping server: " + e.getMessage());
+                }
+                server = null;
+            }
+            try { Thread.sleep(500); } catch (Exception e) {}
+            startServer();
+            startForeground(NOTIFICATION_ID, createNotification());
+            return START_STICKY;
+        }
+        // =============================================
+
         if ("START".equals(action)) {
             startForeground(NOTIFICATION_ID, createNotification());
             startServer();
@@ -177,7 +195,7 @@ public class HttpServerService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "Service onDestroy called - scheduling restart!");
+        Log.d(TAG, "Service onDestroy called - scheduling full restart!");
         
         unregisterNetworkCallback();
         if (fallbackTimer != null) {
@@ -199,7 +217,7 @@ public class HttpServerService extends Service {
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        Log.d(TAG, "onTaskRemoved called - scheduling restart!");
+        Log.d(TAG, "onTaskRemoved called - scheduling full restart!");
         super.onTaskRemoved(rootIntent);
         scheduleRestart();
     }
@@ -208,7 +226,7 @@ public class HttpServerService extends Service {
         try {
             AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
             Intent restartIntent = new Intent(this, HttpServerService.class);
-            restartIntent.setAction("START");
+            restartIntent.setAction("RESTART_FULL");
             
             PendingIntent pendingIntent = PendingIntent.getService(
                     this, 0, restartIntent,
@@ -222,7 +240,7 @@ public class HttpServerService extends Service {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
             }
             
-            Log.d(TAG, "✅ Restart scheduled in 3 seconds");
+            Log.d(TAG, "✅ Full restart scheduled in 3 seconds");
         } catch (Exception e) {
             Log.e(TAG, "Error scheduling restart: " + e.getMessage());
         }
