@@ -1,6 +1,7 @@
 package com.security.ravan;
 
 import android.content.Context;
+import android.content.Intent;           // ← اضافه کن
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Build;
@@ -12,7 +13,9 @@ import android.Manifest;
 import java.io.File;
 import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;               // ← اضافه کن
 import java.util.Date;
+import java.util.List;                   // ← اضافه کن
 import java.util.Locale;
 import java.util.Map;
 
